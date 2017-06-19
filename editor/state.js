@@ -12,6 +12,8 @@ import { reduce, keyBy, first, last, omit, without, flowRight } from 'lodash';
 import { combineUndoableReducers } from './utils/undoable-reducer';
 import effects from './effects';
 
+const isMobile = window.innerWidth < 782;
+
 /**
  * Undoable reducer returning the editor post state, including blocks parsed
  * from current HTML markup.
@@ -299,6 +301,16 @@ export function selectedBlock( state = {}, action ) {
 				typing: true,
 			};
 
+		case 'STOP_TYPING':
+			if ( action.uid !== state.uid ) {
+				return state;
+			}
+
+			return {
+				...state,
+				typing: false,
+			};
+
 		case 'REPLACE_BLOCKS':
 			if ( ! action.blocks || ! action.blocks.length || action.uids.indexOf( state.uid ) === -1 ) {
 				return state;
@@ -407,7 +419,7 @@ export function mode( state = 'visual', action ) {
 	return state;
 }
 
-export function isSidebarOpened( state = false, action ) {
+export function isSidebarOpened( state = ! isMobile, action ) {
 	switch ( action.type ) {
 		case 'TOGGLE_SIDEBAR':
 			return ! state;

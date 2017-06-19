@@ -10,10 +10,7 @@ import { format } from 'util';
 /**
  * Internal dependencies
  */
-import {
-	// parseWithGrammar,
-	parseWithTinyMCE,
-} from '../api/parser';
+import parse from '../api/parser';
 import serialize from '../api/serializer';
 import { getBlockTypes } from '../api/registration';
 
@@ -94,7 +91,7 @@ describe( 'full post content fixture', () => {
 		it( f, () => {
 			const content = readFixtureFile( f + '.html' );
 
-			const blocksActual = parseWithTinyMCE( content );
+			const blocksActual = parse( content );
 			const blocksActualNormalized = normalizeParsedBlocks( blocksActual );
 			let blocksExpectedString = readFixtureFile( f + '.json' );
 
@@ -130,19 +127,19 @@ describe( 'full post content fixture', () => {
 				}
 			}
 
-			expect( serializedActual ).to.eql( serializedExpected );
+			expect( serializedActual.trim() ).to.eql( serializedExpected.trim() );
 		} );
 	} );
 
 	it( 'should be present for each block', () => {
 		const errors = [];
 
-		getBlockTypes().map( block => block.slug ).forEach( slug => {
-			const slugToFilename = slug.replace( /\//g, '-' );
+		getBlockTypes().map( block => block.name ).forEach( name => {
+			const nameToFilename = name.replace( /\//g, '-' );
 			const foundFixtures = fileBasenames
 				.filter( basename => (
-					basename === slugToFilename ||
-					startsWith( basename, slugToFilename + '-' )
+					basename === nameToFilename ||
+					startsWith( basename, nameToFilename + '-' )
 				) )
 				.map( basename => {
 					const filename = basename + '.html';
@@ -156,20 +153,20 @@ describe( 'full post content fixture', () => {
 			if ( ! foundFixtures.length ) {
 				errors.push( format(
 					'Expected a fixture file called \'%s.html\' or \'%s-*.html\'.',
-					slugToFilename,
-					slugToFilename
+					nameToFilename,
+					nameToFilename
 				) );
 			}
 
 			foundFixtures.forEach( fixture => {
 				const delimiter = new RegExp(
-					'<!--\\s*wp:' + slug + '(\\s+|\\s*-->)'
+					'<!--\\s*wp:' + name + '(\\s+|\\s*-->)'
 				);
 				if ( ! delimiter.test( fixture.contents ) ) {
 					errors.push( format(
 						'Expected fixture file \'%s\' to test the \'%s\' block.',
 						fixture.filename,
-						slug
+						name
 					) );
 				}
 			} );

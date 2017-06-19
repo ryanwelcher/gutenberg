@@ -10,7 +10,7 @@ import 'element-closest';
 /**
  * WordPress dependencies
  */
-import { BACKSPACE, DELETE } from 'utils/keycodes';
+import { BACKSPACE, DELETE, ENTER } from 'utils/keycodes';
 
 /**
  * Internal dependencies
@@ -212,6 +212,45 @@ export default class Editable extends wp.element.Component {
 		if ( keyCode === BACKSPACE ) {
 			this.onSelectionChange();
 		}
+
+		if ( keyCode === ENTER && this.props.inline && this.props.onSplit ) {
+			const endNode = this.editor.selection.getEnd();
+
+			// Make sure the current selection is on a line break.
+			if ( endNode.nodeName !== 'BR' ) {
+				return;
+			}
+
+			const prevNode = endNode.previousSibling;
+
+			// Make sure the previous node is a line break. We only want to
+			// split on a double line break.
+			if ( ! prevNode || prevNode.nodeName !== 'BR' ) {
+				return;
+			}
+
+			const { dom } = this.editor;
+			const rootNode = this.editor.getBody();
+			const beforeRange = dom.createRng();
+			const afterRange = dom.createRng();
+
+			dom.remove( prevNode );
+
+			beforeRange.setStart( rootNode, 0 );
+			beforeRange.setEnd( endNode.parentNode, dom.nodeIndex( endNode ) );
+
+			afterRange.setStart( endNode.parentNode, dom.nodeIndex( endNode ) + 1 );
+			afterRange.setEnd( rootNode, dom.nodeIndex( rootNode.lastChild ) + 1 );
+
+			const beforeFragment = beforeRange.extractContents();
+			const afterFragment = afterRange.extractContents();
+
+			const beforeElement = nodeListToReact( beforeFragment.childNodes, createElement );
+			const afterElement = nodeListToReact( afterFragment.childNodes, createElement );
+
+			this.setContent( beforeElement );
+			this.props.onSplit( beforeElement, afterElement );
+		}
 	}
 
 	onNewBlock() {
@@ -302,14 +341,19 @@ export default class Editable extends wp.element.Component {
 
 	updateFocus() {
 		const { focus } = this.props;
+		const isActive = this.isActive();
+
 		if ( focus ) {
-			this.editor.focus();
+			if ( ! isActive ) {
+				this.editor.focus();
+			}
+
 			// Offset = -1 means we should focus the end of the editable
-			if ( focus.offset === -1 ) {
+			if ( focus.offset === -1 && ! this.isEndOfEditor() ) {
 				this.editor.selection.select( this.editor.getBody(), true );
 				this.editor.selection.collapse( false );
 			}
-		} else {
+		} else if ( isActive ) {
 			this.editor.getBody().blur();
 		}
 	}

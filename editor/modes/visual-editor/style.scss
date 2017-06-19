@@ -26,10 +26,11 @@
 .editor-visual-editor__block {
 	margin-left: auto;
 	margin-right: auto;
-	max-width: $visual-editor-max-width;
+	margin-bottom: 5px;
+	max-width: $visual-editor-max-width + ( 2 * $block-mover-padding-visible );
 	position: relative;
-	padding: $block-padding;
-	transition: 0.2s border-color;
+	 // The block mover needs to stay inside the block to allow clicks when hovering the block
+	padding: $block-padding $block-padding + $block-mover-padding-visible;
 
 	&:before {
 		z-index: z-index( '.editor-visual-editor__block:before' );
@@ -37,18 +38,20 @@
 		position: absolute;
 		top: 0;
 		bottom: 0;
-		left: 0;
-		right: 0;
-		border: 2px solid transparent;
-		transition: 0.2s border-color;
+		left: $block-mover-padding-visible;
+		right: $block-mover-padding-visible;
+		outline: 1px solid transparent;
+		transition: 0.2s outline;
 	}
 
 	&.is-hovered:before {
-		border-left-color: $light-gray-500;
+		outline: 1px solid $light-gray-500;
+		transition: 0.2s outline;
 	}
 
 	&.is-selected:before {
-		border-color: $light-gray-500;
+		outline: 2px solid $light-gray-500;
+		transition: 0.2s outline;
 	}
 
 	&.is-multi-selected *::selection {
@@ -57,7 +60,8 @@
 
 	&.is-multi-selected:before {
 		background: $blue-medium-100;
-		border: 2px solid $blue-medium-200;
+		outline: 2px solid $blue-medium-200;
+		transition: 0.2s outline;
 	}
 
 	.iframe-overlay {
@@ -253,5 +257,29 @@ $sticky-bottom-offset: 20px;
 		right: 0;
 		background: $blue-medium-500;
 		content: '';
+	}
+}
+
+.editor-visual-editor__placeholder[type=text] {
+	margin: 2px auto;
+	max-width: $visual-editor-max-width;
+	position: relative;
+	padding: $block-padding;
+	outline: 1px solid transparent;
+	border: none;
+	background: none;
+	box-shadow: none;
+	display: block;
+	transition: 0.2s outline;
+	text-align: left;
+	width: 100%;
+	color: $light-gray-700;
+	font-size: $editor-font-size;
+	line-height: $editor-line-height;
+	cursor: text;
+	left: -1px;
+
+	&:hover {
+		outline: 1px solid $light-gray-500;
 	}
 }
