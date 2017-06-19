@@ -2,6 +2,7 @@
  * WordPress dependencies
  */
 import { switchChildrenNodeName } from 'element';
+import { isString } from 'lodash';
 
 /**
  * Internal dependencies
@@ -12,7 +13,7 @@ import AlignmentToolbar from '../../alignment-toolbar';
 import BlockControls from '../../block-controls';
 import Editable from '../../editable';
 
-const { children, query } = hpq;
+const { children, node, query } = hpq;
 
 registerBlockType( 'core/quote', {
 	title: wp.i18n.__( 'Quote' ),
@@ -20,7 +21,7 @@ registerBlockType( 'core/quote', {
 	category: 'common',
 
 	attributes: {
-		value: query( 'blockquote > p', children() ),
+		value: query( 'blockquote > p', node() ),
 		citation: children( 'footer' ),
 	},
 
@@ -68,9 +69,23 @@ registerBlockType( 'core/quote', {
 			{
 				type: 'block',
 				blocks: [ 'core/text' ],
-				transform: ( { value, citation } ) => {
+				transform: ( { value, citation, ...attrs } ) => {
+					const textElement = Array.isArray( value ) ? value[ 0 ] : value;
+					const textContent = isString( textElement ) ? textElement : textElement.props.children;
+					if ( Array.isArray( value ) || citation ) {
+						const text = createBlock( 'core/text', {
+							content: textContent,
+						} );
+						const quote = createBlock( 'core/quote', {
+							...attrs,
+							citation,
+							value: Array.isArray( value ) ? value.slice( 1 ) : '',
+						} );
+
+						return [ text, quote ];
+					}
 					return createBlock( 'core/text', {
-						content: wp.element.concatChildren( value, citation ),
+						content: textContent,
 					} );
 				},
 			},
@@ -92,9 +107,11 @@ registerBlockType( 'core/quote', {
 				type: 'block',
 				blocks: [ 'core/heading' ],
 				transform: ( { value, citation, ...attrs } ) => {
+					const headingElement = Array.isArray( value ) ? value[ 0 ] : value;
+					const headingContent = isString( headingElement ) ? headingElement : headingElement.props.children;
 					if ( Array.isArray( value ) || citation ) {
 						const heading = createBlock( 'core/heading', {
-							content: Array.isArray( value ) ? value[ 0 ] : value,
+							content: headingContent,
 						} );
 						const quote = createBlock( 'core/quote', {
 							...attrs,
@@ -105,7 +122,7 @@ registerBlockType( 'core/quote', {
 						return [ heading, quote ];
 					}
 					return createBlock( 'core/heading', {
-						content: value,
+						content: headingContent,
 					} );
 				},
 			},
@@ -172,7 +189,7 @@ registerBlockType( 'core/quote', {
 						key={ i }
 						style={ { textAlign: align ? align : null } }
 					>
-						{ paragraph }
+						{ isString( paragraph ) ? paragraph : paragraph.props.children }
 					</p>
 				) ) }
 				{ citation && citation.length > 0 && (
