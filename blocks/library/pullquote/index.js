@@ -1,4 +1,9 @@
 /**
+ * WordPress dependencies
+ */
+import { __ } from 'i18n';
+
+/**
  * Internal dependencies
  */
 import './style.scss';
@@ -11,7 +16,7 @@ const { children, query } = hpq;
 
 registerBlockType( 'core/pullquote', {
 
-	title: wp.i18n.__( 'Pullquote' ),
+	title: __( 'Pullquote' ),
 
 	icon: 'format-quote',
 
@@ -45,19 +50,22 @@ registerBlockType( 'core/pullquote', {
 			),
 			<blockquote key="quote" className="blocks-pullquote">
 				<Editable
-					value={ value || wp.i18n.__( 'Write Quote…' ) }
+					value={ value }
 					onChange={
 						( nextValue ) => setAttributes( {
 							value: nextValue,
 						} )
 					}
+					placeholder={ ( 'Write Quote…' ) }
 					focus={ focus && focus.editable === 'value' ? focus : null }
 					onFocus={ ( props ) => setFocus( { ...props, editable: 'value' } ) }
+					className="blocks-pullquote__content"
 				/>
 				{ ( citation || !! focus ) && (
 					<Editable
 						tagName="footer"
-						value={ citation || wp.i18n.__( 'Write caption…' ) }
+						value={ citation }
+						placeholder={ __( 'Write caption…' ) }
 						onChange={
 							( nextCitation ) => setAttributes( {
 								citation: nextCitation,
