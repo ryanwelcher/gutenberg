@@ -88,6 +88,7 @@
 		// Without z-index, won't be clickable as "above" adjacent content
 		z-index: z-index( '.editor-visual-editor__block {core/image aligned left or right}' );
 		max-width: 370px;
+		width: 100%;
 
 		.editor-block-mover {
 			display: none;
