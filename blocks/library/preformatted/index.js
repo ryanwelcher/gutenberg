@@ -1,43 +1,57 @@
 /**
  * WordPress
  */
-import { __ } from 'i18n';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
-import './style.scss';
-import { registerBlockType, createBlock, query } from '../../api';
+import './editor.scss';
+import { registerBlockType, createBlock } from '../../api';
 import Editable from '../../editable';
-
-const { children } = query;
 
 registerBlockType( 'core/preformatted', {
 	title: __( 'Preformatted' ),
+
+	description: __( 'Preformatted text keeps your spaces, tabs and linebreaks as they are.' ),
 
 	icon: 'text',
 
 	category: 'formatting',
 
 	attributes: {
-		content: children( 'pre' ),
+		content: {
+			type: 'array',
+			source: 'children',
+			selector: 'pre',
+		},
 	},
 
 	transforms: {
 		from: [
 			{
 				type: 'block',
-				blocks: [ 'core/text' ],
+				blocks: [ 'core/paragraph' ],
 				transform: ( attributes ) =>
 					createBlock( 'core/preformatted', attributes ),
+			},
+			{
+				type: 'raw',
+				isMatch: ( node ) => (
+					node.nodeName === 'PRE' &&
+					! (
+						node.children.length === 1 &&
+						node.firstChild.nodeName === 'CODE'
+					)
+				),
 			},
 		],
 		to: [
 			{
 				type: 'block',
-				blocks: [ 'core/text' ],
+				blocks: [ 'core/paragraph' ],
 				transform: ( attributes ) =>
-					createBlock( 'core/text', attributes ),
+					createBlock( 'core/paragraph', attributes ),
 			},
 		],
 	},
@@ -45,8 +59,9 @@ registerBlockType( 'core/preformatted', {
 	edit( { attributes, setAttributes, focus, setFocus, className } ) {
 		const { content } = attributes;
 
-		return (
+		return [
 			<Editable
+				key="block"
 				tagName="pre"
 				value={ content }
 				onChange={ ( nextContent ) => {
@@ -57,9 +72,9 @@ registerBlockType( 'core/preformatted', {
 				focus={ focus }
 				onFocus={ setFocus }
 				placeholder={ __( 'Write preformatted text…' ) }
-				className={ className }
-			/>
-		);
+				wrapperClassName={ className }
+			/>,
+		];
 	},
 
 	save( { attributes } ) {

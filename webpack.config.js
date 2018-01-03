@@ -1,10 +1,9 @@
 /**
  * External dependencies
  */
-
-const glob = require( 'glob' );
 const webpack = require( 'webpack' );
 const ExtractTextPlugin = require( 'extract-text-webpack-plugin' );
+const WebpackRTLPlugin = require( 'webpack-rtl-plugin' );
 
 // Main CSS loader for everything but blocks..
 const mainCSSExtractTextPlugin = new ExtractTextPlugin( {
@@ -25,12 +24,19 @@ const blocksCSSPlugin = new ExtractTextPlugin( {
 const extractConfig = {
 	use: [
 		{ loader: 'raw-loader' },
-		{ loader: 'postcss-loader' },
+		{
+			loader: 'postcss-loader',
+			options: {
+				plugins: [
+					require( 'autoprefixer' ),
+				],
+			},
+		},
 		{
 			loader: 'sass-loader',
 			query: {
 				includePaths: [ 'editor/assets/stylesheets' ],
-				data: '@import "variables"; @import "mixins"; @import "animations";@import "z-index";',
+				data: '@import "colors"; @import "admin-schemes"; @import "breakpoints"; @import "variables"; @import "mixins"; @import "animations";@import "z-index";',
 				outputStyle: 'production' === process.env.NODE_ENV ?
 					'compressed' : 'nested',
 			},
@@ -39,13 +45,18 @@ const extractConfig = {
 };
 
 const entryPointNames = [
-	'element',
-	'i18n',
-	'components',
-	'utils',
 	'blocks',
+	'components',
 	'date',
 	'editor',
+	'element',
+	'i18n',
+	'utils',
+	'data',
+];
+
+const packageNames = [
+	'hooks',
 ];
 
 const externals = {
@@ -54,19 +65,26 @@ const externals = {
 	'react-dom/server': 'ReactDOMServer',
 	tinymce: 'tinymce',
 	moment: 'moment',
+	jquery: 'jQuery',
 };
 
-entryPointNames.forEach( entryPointName => {
-	externals[ entryPointName ] = {
-		'this': [ 'wp', entryPointName ],
+[ ...entryPointNames, ...packageNames ].forEach( name => {
+	externals[ `@wordpress/${ name }` ] = {
+		this: [ 'wp', name ],
 	};
 } );
 
 const config = {
-	entry: entryPointNames.reduce( ( memo, entryPointName ) => {
-		memo[ entryPointName ] = './' + entryPointName + '/index.js';
-		return memo;
-	}, {} ),
+	entry: Object.assign(
+		entryPointNames.reduce( ( memo, entryPointName ) => {
+			memo[ entryPointName ] = `./${ entryPointName }/index.js`;
+			return memo;
+		}, {} ),
+		packageNames.reduce( ( memo, packageName ) => {
+			memo[ packageName ] = `./node_modules/@wordpress/${ packageName }`;
+			return memo;
+		}, {} )
+	),
 	output: {
 		filename: '[name]/build/index.js',
 		path: __dirname,
@@ -79,11 +97,6 @@ const config = {
 			__dirname,
 			'node_modules',
 		],
-		alias: {
-			// There are currently resolution errors on RSF's "mitt" dependency
-			// when imported as native ES module
-			'react-slot-fill': 'react-slot-fill/lib/rsf.js',
-		},
 	},
 	module: {
 		rules: [
@@ -97,19 +110,16 @@ const config = {
 				use: 'babel-loader',
 			},
 			{
-				test: /block\.s?css$/,
+				test: /style\.s?css$/,
 				include: [
 					/blocks/,
 				],
 				use: blocksCSSPlugin.extract( extractConfig ),
 			},
 			{
-				test: /\.s?css$/,
+				test: /editor\.s?css$/,
 				include: [
 					/blocks/,
-				],
-				exclude: [
-					/block\.s?css$/,
 				],
 				use: editBlocksCSSPlugin.extract( extractConfig ),
 			},
@@ -129,14 +139,16 @@ const config = {
 		blocksCSSPlugin,
 		editBlocksCSSPlugin,
 		mainCSSExtractTextPlugin,
+		// Create RTL files with a -rtl suffix
+		new WebpackRTLPlugin( {
+			suffix: '-rtl',
+			minify: {
+				safe: true,
+			},
+		} ),
 		new webpack.LoaderOptionsPlugin( {
 			minimize: process.env.NODE_ENV === 'production',
 			debug: process.env.NODE_ENV !== 'production',
-			options: {
-				postcss: [
-					require( 'autoprefixer' ),
-				],
-			},
 		} ),
 	],
 	stats: {
@@ -147,35 +159,6 @@ const config = {
 switch ( process.env.NODE_ENV ) {
 	case 'production':
 		config.plugins.push( new webpack.optimize.UglifyJsPlugin() );
-		break;
-
-	case 'test':
-		config.target = 'node';
-		config.node = {
-			__dirname: true,
-		};
-		config.module.rules = [
-			...entryPointNames.map( ( entry ) => ( {
-				test: require.resolve( './' + entry + '/index.js' ),
-				use: 'expose-loader?wp.' + entry,
-			} ) ),
-			...config.module.rules,
-		];
-		const testFiles = glob.sync(
-			'./{' + Object.keys( config.entry ).sort() + '}/**/test/*.js'
-		);
-		config.entry = [
-			...entryPointNames.map(
-				entryPointName => './' + entryPointName + '/index.js'
-			),
-			...testFiles.filter( f => /full-content\.js$/.test( f ) ),
-			...testFiles.filter( f => ! /full-content\.js$/.test( f ) ),
-		];
-		config.externals = [ require( 'webpack-node-externals' )() ];
-		config.output = {
-			filename: 'build/test.js',
-			path: __dirname,
-		};
 		break;
 
 	default:

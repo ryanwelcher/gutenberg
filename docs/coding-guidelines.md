@@ -1,7 +1,6 @@
-Coding Guidelines
-=================
+# Coding Guidelines
 
-This living document serves to prescribe coding guidelines specific to the Gutenberg editor project. Base coding guidelines follow the [WordPress Coding Standards](https://codex.wordpress.org/WordPress_Coding_Standards). The following sections outline additional patterns and conventions used in the Gutenberg project.
+This living document serves to prescribe coding guidelines specific to the Gutenberg editor project. Base coding guidelines follow the [WordPress Coding Standards](https://make.wordpress.org/core/handbook/best-practices/coding-standards/). The following sections outline additional patterns and conventions used in the Gutenberg project.
 
 ## CSS
 
@@ -36,9 +35,7 @@ You may observe that these conventions adhere closely to the [BEM (Blocks, Eleme
 
 The build process will split SCSS from within the blocks library directory into two separate CSS files when Webpack runs.
 
-Styles placed in a block.scss file will be built into `blocks/build/style.css`, to load on the front end theme as well as in the editor.
-
-All other SCSS files will be built into `blocks/build/edit-blocks.css`, to load **only in the editor**.
+Styles placed in a `style.scss` file will be built into `blocks/build/style.css`, to load on the front end theme as well as in the editor. If you need additional styles specific to the block's display in the editor, add them to an `editor.scss`.
 
 Examples of styles that appear in both the theme and the editor include gallery columns and drop caps.
 
@@ -65,7 +62,7 @@ import TinyMCE from 'tinymce';
 
 #### WordPress Dependencies
 
-To encourage reusability between features, our JavaScript is split into domain-specific modules which [`export`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export) one or more functions or objects. In the Gutenberg project, we've distinguished these modules under top-level directories `blocks`, `components`, `editor`, `element`, and `i18n`. These each serve an independent purpose, and often code is shared between them. For example, in order to localize its text, editor code will need to include functions from the `i18n` module.
+To encourage reusability between features, our JavaScript is split into domain-specific modules which [`export`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/export) one or more functions or objects. In the Gutenberg project, we've distinguished these modules under top-level directories `blocks`, `components`, `editor`, `element`, `data` and `i18n`. These each serve an independent purpose, and often code is shared between them. For example, in order to localize its text, editor code will need to include functions from the `i18n` module.
 
 Example:
 
@@ -73,7 +70,7 @@ Example:
 /**
  * WordPress dependencies
  */
-import { __ } from 'i18n';
+import { __ } from '@wordpress/i18n';
 ```
 
 #### Internal Dependencies
@@ -92,17 +89,8 @@ import VisualEditor from '../visual-editor';
 ## PHP
 
 We use
-[`phpcs` (PHP\_CodeSniffer)](https://github.com/squizlabs/PHP_CodeSniffer)
-with the
-[WordPress Coding Standards ruleset](https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards)
-to run a lot of automated checks against all PHP code in this project.  This
-ensures that we are consistent with WordPress PHP coding standards.
+[`phpcs` (PHP\_CodeSniffer)](https://github.com/squizlabs/PHP_CodeSniffer) with the [WordPress Coding Standards ruleset](https://github.com/WordPress-Coding-Standards/WordPress-Coding-Standards) to run a lot of automated checks against all PHP code in this project.  This ensures that we are consistent with WordPress PHP coding standards.
 
-When making any changes to the PHP code in this project, it's recommended to
-install and run `phpcs` on your computer.  This is a step in our Travis CI
-build as well, but it is better to catch errors locally.
+When making any changes to the PHP code in this project, it's recommended to install and run `phpcs` on your computer.  This is a step in our Travis CI build as well, but it is better to catch errors locally.
 
-The easiest way to do this is using `composer`.
-[Install `composer`](https://getcomposer.org/download/)
-on your computer, then run `composer install`.  This will install `phpcs` and
-`WordPress-Coding-Standards` which you can the run via `vendor/bin/phpcs`.
+The easiest way to do this is using `composer`. [Install `composer`](https://getcomposer.org/download/) on your computer, then run `composer install`.  This will install `phpcs` and `WordPress-Coding-Standards` which you can the run via `vendor/bin/phpcs`.

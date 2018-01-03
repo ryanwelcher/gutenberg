@@ -1,10 +1,39 @@
+/**
+ * WordPress dependencies
+ */
+import { Component } from '@wordpress/element';
+import { Toolbar, DropdownMenu } from '@wordpress/components';
+import { __ } from '@wordpress/i18n';
+
+/**
+ * Internal dependencies
+ */
 import Editable from '../../editable';
 import BlockControls from '../../block-controls';
-import { Toolbar, DropdownMenu } from 'components';
+
+function isTableSelected( editor ) {
+	return editor.dom.getParent(
+		editor.selection.getStart( true ),
+		'table',
+		editor.getBody().parentNode
+	);
+}
+
+function selectFirstCell( editor ) {
+	const cell = editor.getBody().querySelector( 'td,th' );
+	if ( cell ) {
+		cell.focus();
+		editor.selection.select( cell, true );
+		editor.selection.collapse( false );
+	}
+}
 
 function execCommand( command ) {
 	return ( editor ) => {
 		if ( editor ) {
+			if ( ! isTableSelected( editor ) ) {
+				selectFirstCell( editor );
+			}
 			editor.execCommand( command );
 		}
 	};
@@ -13,42 +42,53 @@ function execCommand( command ) {
 const TABLE_CONTROLS = [
 	{
 		icon: 'table-row-before',
-		title: wp.i18n.__( 'Insert Row Before' ),
+		title: __( 'Insert Row Before' ),
 		onClick: execCommand( 'mceTableInsertRowBefore' ),
 	},
 	{
 		icon: 'table-row-after',
-		title: wp.i18n.__( 'Insert Row After' ),
+		title: __( 'Insert Row After' ),
 		onClick: execCommand( 'mceTableInsertRowAfter' ),
 	},
 	{
 		icon: 'table-row-delete',
-		title: wp.i18n.__( 'Delete Row' ),
+		title: __( 'Delete Row' ),
 		onClick: execCommand( 'mceTableDeleteRow' ),
 	},
 	{
 		icon: 'table-col-before',
-		title: wp.i18n.__( 'Insert Column Before' ),
+		title: __( 'Insert Column Before' ),
 		onClick: execCommand( 'mceTableInsertColBefore' ),
 	},
 	{
 		icon: 'table-col-after',
-		title: wp.i18n.__( 'Insert Column After' ),
+		title: __( 'Insert Column After' ),
 		onClick: execCommand( 'mceTableInsertColAfter' ),
 	},
 	{
 		icon: 'table-col-delete',
-		title: wp.i18n.__( 'Delete Column' ),
+		title: __( 'Delete Column' ),
 		onClick: execCommand( 'mceTableDeleteCol' ),
 	},
 ];
 
-export default class TableBlock extends wp.element.Component {
+export default class TableBlock extends Component {
 	constructor() {
 		super();
+		this.handleSetup = this.handleSetup.bind( this );
 		this.state = {
 			editor: null,
 		};
+	}
+
+	handleSetup( editor, focus ) {
+		// select the end of the first table cell
+		editor.on( 'init', () => {
+			if ( focus ) {
+				selectFirstCell( editor );
+			}
+		} );
+		this.setState( { editor } );
 	}
 
 	render() {
@@ -58,12 +98,13 @@ export default class TableBlock extends wp.element.Component {
 			<Editable
 				key="editor"
 				tagName="table"
-				className={ className }
+				wrapperClassName={ className }
 				getSettings={ ( settings ) => ( {
 					...settings,
 					plugins: ( settings.plugins || [] ).concat( 'table' ),
+					table_tab_navigation: false,
 				} ) }
-				onSetup={ ( editor ) => this.setState( { editor } ) }
+				onSetup={ ( editor ) => this.handleSetup( editor, focus ) }
 				onChange={ onChange }
 				value={ content }
 				focus={ focus }
@@ -72,16 +113,15 @@ export default class TableBlock extends wp.element.Component {
 			focus && (
 				<BlockControls key="menu">
 					<Toolbar>
-						<li>
-							<DropdownMenu
-								icon="editor-table"
-								controls={
-									TABLE_CONTROLS.map( ( control ) => ( {
-										...control,
-										onClick: () => control.onClick( this.state.editor ),
-									} ) ) }
-							/>
-						</li>
+						<DropdownMenu
+							icon="editor-table"
+							label={ __( 'Edit Table' ) }
+							controls={
+								TABLE_CONTROLS.map( ( control ) => ( {
+									...control,
+									onClick: () => control.onClick( this.state.editor ),
+								} ) ) }
+						/>
 					</Toolbar>
 				</BlockControls>
 			),

@@ -28,3 +28,23 @@
 		background-position: 28px 0;
 	}
 }
+
+@mixin loading_fade {
+	animation: loading_fade 1.6s ease-in-out infinite;
+}
+
+@keyframes loading_fade {
+	0% { opacity: .5; }
+	50% { opacity: 1; }
+	100% { opacity: .5; }
+}
+
+
+@mixin slide_in_right {
+	transform: translateX(+100%);
+	animation: slide_in_right 0.1s forwards;
+}
+
+@keyframes slide_in_right {
+	100% { transform: translateX(0%); }
+}

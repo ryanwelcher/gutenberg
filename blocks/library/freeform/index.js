@@ -1,49 +1,32 @@
 /**
  * WordPress dependencies
  */
-import { __ } from 'i18n';
+import { __ } from '@wordpress/i18n';
 
 /**
  * Internal dependencies
  */
-import './style.scss';
-import { registerBlockType, query, setUnknownTypeHandler } from '../../api';
-import FreeformBlock from './freeform-block';
-
-const { children } = query;
+import './editor.scss';
+import { registerBlockType, setUnknownTypeHandlerName } from '../../api';
+import OldEditor from './old-editor';
 
 registerBlockType( 'core/freeform', {
-	title: __( 'Classic Text' ),
+	title: __( 'Classic' ),
+
+	desription: __( 'The classic editor, in block form.' ),
 
 	icon: 'editor-kitchensink',
 
 	category: 'formatting',
 
 	attributes: {
-		content: children(),
+		content: {
+			type: 'string',
+			source: 'html',
+		},
 	},
 
-	defaultAttributes: {
-		content: <p />,
-	},
-
-	edit( { attributes, setAttributes, focus, setFocus, className } ) {
-		const { content } = attributes;
-
-		return (
-			<FreeformBlock
-				className={ className }
-				content={ content }
-				onChange={ ( nextContent ) => {
-					setAttributes( {
-						content: nextContent,
-					} );
-				} }
-				focus={ focus }
-				onFocus={ setFocus }
-			/>
-		);
-	},
+	edit: OldEditor,
 
 	save( { attributes } ) {
 		const { content } = attributes;
@@ -51,4 +34,4 @@ registerBlockType( 'core/freeform', {
 	},
 } );
 
-setUnknownTypeHandler( 'core/freeform' );
+setUnknownTypeHandlerName( 'core/freeform' );
