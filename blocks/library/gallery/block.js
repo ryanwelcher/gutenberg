@@ -9,21 +9,25 @@ import { filter } from 'lodash';
 import { Component } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { mediaUpload } from '@wordpress/utils';
-import { Dashicon, DropZone, Toolbar, Placeholder, FormFileUpload } from '@wordpress/components';
+import {
+	IconButton,
+	DropZone,
+	RangeControl,
+	SelectControl,
+	ToggleControl,
+	Toolbar,
+} from '@wordpress/components';
 
 /**
  * Internal dependencies
  */
-import MediaUploadButton from '../../media-upload-button';
+import MediaUpload from '../../media-upload';
+import ImagePlaceHolder from '../../image-placeholder';
 import InspectorControls from '../../inspector-controls';
-import RangeControl from '../../inspector-controls/range-control';
-import ToggleControl from '../../inspector-controls/toggle-control';
-import SelectControl from '../../inspector-controls/select-control';
 import BlockControls from '../../block-controls';
 import BlockAlignmentToolbar from '../../block-alignment-toolbar';
 import GalleryImage from './gallery-image';
 
-const isGallery = true;
 const MAX_COLUMNS = 8;
 const linkOptions = [
 	{ value: 'attachment', label: __( 'Attachment Page' ) },
@@ -45,7 +49,6 @@ class GalleryBlock extends Component {
 		this.setColumnsNumber = this.setColumnsNumber.bind( this );
 		this.updateAlignment = this.updateAlignment.bind( this );
 		this.toggleImageCrop = this.toggleImageCrop.bind( this );
-		this.uploadFromFiles = this.uploadFromFiles.bind( this );
 		this.onRemoveImage = this.onRemoveImage.bind( this );
 		this.setImageAttributes = this.setImageAttributes.bind( this );
 		this.dropFiles = this.dropFiles.bind( this );
@@ -57,9 +60,11 @@ class GalleryBlock extends Component {
 
 	onSelectImage( index ) {
 		return () => {
-			this.setState( ( state ) => ( {
-				selectedImage: index === state.selectedImage ? null : index,
-			} ) );
+			if ( this.state.selectedImage !== index ) {
+				this.setState( {
+					selectedImage: index,
+				} );
+			}
 		};
 	}
 
@@ -74,8 +79,13 @@ class GalleryBlock extends Component {
 		};
 	}
 
-	onSelectImages( imgs ) {
-		this.props.setAttributes( { images: imgs } );
+	onSelectImages( images ) {
+		this.props.setAttributes( {
+			images: images.map( ( attributes ) => ( {
+				...attributes,
+				caption: attributes.caption ? [ attributes.caption ] : [],
+			} ) ),
+		} );
 	}
 
 	setLinkTo( value ) {
@@ -92,10 +102,6 @@ class GalleryBlock extends Component {
 
 	toggleImageCrop() {
 		this.props.setAttributes( { imageCrop: ! this.props.attributes.imageCrop } );
-	}
-
-	uploadFromFiles( event ) {
-		mediaUpload( event.target.files, this.props.setAttributes, isGallery );
 	}
 
 	setImageAttributes( index, attributes ) {
@@ -118,17 +124,26 @@ class GalleryBlock extends Component {
 		const { setAttributes } = this.props;
 		mediaUpload(
 			files,
-			( { images } ) => {
+			( images ) => {
 				setAttributes( {
 					images: currentImages.concat( images ),
 				} );
-			},
-			isGallery
+			}
 		);
 	}
 
+	componentWillReceiveProps( nextProps ) {
+		// Deselect images when deselecting the block
+		if ( ! nextProps.isSelected && this.props.isSelected ) {
+			this.setState( {
+				selectedImage: null,
+				captionSelected: false,
+			} );
+		}
+	}
+
 	render() {
-		const { attributes, focus, className } = this.props;
+		const { attributes, isSelected, className } = this.props;
 		const { images, columns = defaultColumnsNumber( attributes ), align, imageCrop, linkTo } = attributes;
 
 		const dropZone = (
@@ -138,7 +153,7 @@ class GalleryBlock extends Component {
 		);
 
 		const controls = (
-			focus && (
+			isSelected && (
 				<BlockControls key="controls">
 					<BlockAlignmentToolbar
 						value={ align }
@@ -146,19 +161,21 @@ class GalleryBlock extends Component {
 					/>
 					{ !! images.length && (
 						<Toolbar>
-							<MediaUploadButton
-								buttonProps={ {
-									className: 'components-icon-button components-toolbar__control',
-									'aria-label': __( 'Edit Gallery' ),
-								} }
+							<MediaUpload
 								onSelect={ this.onSelectImages }
 								type="image"
 								multiple
 								gallery
 								value={ images.map( ( img ) => img.id ) }
-							>
-								<Dashicon icon="edit" />
-							</MediaUploadButton>
+								render={ ( { open } ) => (
+									<IconButton
+										className="components-toolbar__control"
+										label={ __( 'Edit Gallery' ) }
+										icon="edit"
+										onClick={ open }
+									/>
+								) }
+							/>
 						</Toolbar>
 					) }
 				</BlockControls>
@@ -166,42 +183,21 @@ class GalleryBlock extends Component {
 		);
 
 		if ( images.length === 0 ) {
-			const uploadButtonProps = { isLarge: true };
-
 			return [
 				controls,
-				<Placeholder
-					key="placeholder"
-					instructions={ __( 'Drag images here or insert from media library' ) }
+				<ImagePlaceHolder key="gallery-placeholder"
+					className={ className }
 					icon="format-gallery"
 					label={ __( 'Gallery' ) }
-					className={ className }>
-					{ dropZone }
-					<FormFileUpload
-						isLarge
-						className="wp-block-image__upload-button"
-						onChange={ this.uploadFromFiles }
-						accept="image/*"
-						multiple="true"
-					>
-						{ __( 'Upload' ) }
-					</FormFileUpload>
-					<MediaUploadButton
-						buttonProps={ uploadButtonProps }
-						onSelect={ this.onSelectImages }
-						type="image"
-						multiple
-						gallery
-					>
-						{ __( 'Insert from Media Library' ) }
-					</MediaUploadButton>
-				</Placeholder>,
+					onSelectImage={ this.onSelectImages }
+					multiple
+				/>,
 			];
 		}
 
 		return [
 			controls,
-			focus && (
+			isSelected && (
 				<InspectorControls key="inspector">
 					<h2>{ __( 'Gallery Settings' ) }</h2>
 					{ images.length > 1 && <RangeControl
@@ -224,21 +220,23 @@ class GalleryBlock extends Component {
 					/>
 				</InspectorControls>
 			),
-			<div key="gallery" className={ `${ className } align${ align } columns-${ columns } ${ imageCrop ? 'is-cropped' : '' }` }>
+			<ul key="gallery" className={ `${ className } align${ align } columns-${ columns } ${ imageCrop ? 'is-cropped' : '' }` }>
 				{ dropZone }
 				{ images.map( ( img, index ) => (
-					<GalleryImage
-						key={ img.id || img.url }
-						url={ img.url }
-						alt={ img.alt }
-						id={ img.id }
-						isSelected={ this.state.selectedImage === index }
-						onRemove={ this.onRemoveImage( index ) }
-						onClick={ this.onSelectImage( index ) }
-						setAttributes={ ( attrs ) => this.setImageAttributes( index, attrs ) }
-					/>
+					<li className="blocks-gallery-item" key={ img.id || img.url }>
+						<GalleryImage
+							url={ img.url }
+							alt={ img.alt }
+							id={ img.id }
+							isSelected={ isSelected && this.state.selectedImage === index }
+							onRemove={ this.onRemoveImage( index ) }
+							onSelect={ this.onSelectImage( index ) }
+							setAttributes={ ( attrs ) => this.setImageAttributes( index, attrs ) }
+							caption={ img.caption }
+						/>
+					</li>
 				) ) }
-			</div>,
+			</ul>,
 		];
 	}
 }

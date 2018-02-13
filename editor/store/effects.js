@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { BEGIN, COMMIT, REVERT } from 'redux-optimist';
-import { get, includes, map, castArray } from 'lodash';
+import { get, has, includes, map, castArray, uniqueId, reduce, values, some } from 'lodash';
 
 /**
  * WordPress dependencies
@@ -14,6 +14,7 @@ import {
 	createBlock,
 	serialize,
 	createReusableBlock,
+	isReusableBlock,
 	getDefaultBlockName,
 } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
@@ -27,7 +28,6 @@ import {
 	resetPost,
 	setupNewPost,
 	resetBlocks,
-	focusBlock,
 	replaceBlocks,
 	createSuccessNotice,
 	createErrorNotice,
@@ -35,14 +35,16 @@ import {
 	savePost,
 	editPost,
 	requestMetaBoxUpdates,
+	metaBoxUpdatesSuccess,
 	updateReusableBlock,
 	saveReusableBlock,
 	insertBlock,
+	setMetaBoxSavedData,
+	selectBlock,
 } from './actions';
 import {
 	getCurrentPost,
 	getCurrentPostType,
-	getDirtyMetaBoxes,
 	getEditedPostContent,
 	getPostEdits,
 	isCurrentPostPublished,
@@ -50,16 +52,19 @@ import {
 	isEditedPostNew,
 	isEditedPostSaveable,
 	getBlock,
+	getBlocks,
 	getReusableBlock,
+	getMetaBoxes,
 	POST_UPDATE_TRANSACTION_ID,
 } from './selectors';
+import { getMetaBoxContainer } from '../utils/meta-boxes';
 
 /**
  * Module Constants
  */
 const SAVE_POST_NOTICE_ID = 'SAVE_POST_NOTICE_ID';
 const TRASH_POST_NOTICE_ID = 'TRASH_POST_NOTICE_ID';
-const SAVE_REUSABLE_BLOCK_NOTICE_ID = 'SAVE_REUSABLE_BLOCK_NOTICE_ID';
+const REUSABLE_BLOCK_NOTICE_ID = 'REUSABLE_BLOCK_NOTICE_ID';
 
 export default {
 	REQUEST_POST_UPDATE( action, store ) {
@@ -106,7 +111,7 @@ export default {
 	},
 	REQUEST_POST_UPDATE_SUCCESS( action, store ) {
 		const { previousPost, post } = action;
-		const { dispatch, getState } = store;
+		const { dispatch } = store;
 
 		const publishStatus = [ 'publish', 'private', 'future' ];
 		const isPublished = includes( publishStatus, previousPost.status );
@@ -146,7 +151,7 @@ export default {
 		}
 
 		// Update dirty meta boxes.
-		dispatch( requestMetaBoxUpdates( getDirtyMetaBoxes( getState() ) ) );
+		dispatch( requestMetaBoxUpdates() );
 
 		if ( get( window.history.state, 'id' ) !== post.id ) {
 			window.history.replaceState(
@@ -201,13 +206,10 @@ export default {
 	TRASH_POST_SUCCESS( action ) {
 		const { postId, postType } = action;
 
-		// Delay redirect to ensure store has been updated with the successful trash.
-		setTimeout( () => {
-			window.location.href = getWPAdminURL( 'edit.php', {
-				trashed: 1,
-				post_type: postType,
-				ids: postId,
-			} );
+		window.location.href = getWPAdminURL( 'edit.php', {
+			trashed: 1,
+			post_type: postType,
+			ids: postId,
 		} );
 	},
 	TRASH_POST_FAILURE( action, store ) {
@@ -221,7 +223,7 @@ export default {
 
 		// Only focus the previous block if it's not mergeable
 		if ( ! blockType.merge ) {
-			dispatch( focusBlock( blockA.uid ) );
+			dispatch( selectBlock( blockA.uid ) );
 			return;
 		}
 
@@ -242,7 +244,7 @@ export default {
 			blocksWithTheSameType[ 0 ].attributes
 		);
 
-		dispatch( focusBlock( blockA.uid, { offset: -1 } ) );
+		dispatch( selectBlock( blockA.uid, -1 ) );
 		dispatch( replaceBlocks(
 			[ blockA.uid, blockB.uid ],
 			[
@@ -317,6 +319,11 @@ export default {
 		return effects;
 	},
 	FETCH_REUSABLE_BLOCKS( action, store ) {
+		// TODO: these are potentially undefined, this fix is in place
+		// until there is a filter to not use reusable blocks if undefined
+		if ( ! has( wp, 'api.models.Blocks' ) && ! has( wp, 'api.collections.Blocks' ) ) {
+			return;
+		}
 		const { id } = action;
 		const { dispatch } = store;
 
@@ -331,6 +338,7 @@ export default {
 			( reusableBlockOrBlocks ) => {
 				dispatch( {
 					type: 'FETCH_REUSABLE_BLOCKS_SUCCESS',
+					id,
 					reusableBlocks: castArray( reusableBlockOrBlocks ).map( ( { id: itemId, title, content } ) => {
 						const [ { name: type, attributes } ] = parse( content );
 						return { id: itemId, title, type, attributes };
@@ -340,6 +348,7 @@ export default {
 			( error ) => {
 				dispatch( {
 					type: 'FETCH_REUSABLE_BLOCKS_FAILURE',
+					id,
 					error: error.responseJSON || {
 						code: 'unknown_error',
 						message: __( 'An unknown error occurred.' ),
@@ -349,12 +358,19 @@ export default {
 		);
 	},
 	SAVE_REUSABLE_BLOCK( action, store ) {
+		// TODO: these are potentially undefined, this fix is in place
+		// until there is a filter to not use reusable blocks if undefined
+		if ( ! has( wp, 'api.models.Blocks' ) ) {
+			return;
+		}
+
 		const { id } = action;
 		const { getState, dispatch } = store;
 
 		const { title, type, attributes, isTemporary } = getReusableBlock( getState(), id );
 		const content = serialize( createBlock( type, attributes ) );
 		const requestData = isTemporary ? { title, content } : { id, title, content };
+
 		new wp.api.models.Blocks( requestData ).save().then(
 			( updatedReusableBlock ) => {
 				dispatch( {
@@ -362,14 +378,68 @@ export default {
 					updatedId: updatedReusableBlock.id,
 					id,
 				} );
-				const message = __( 'Block updated.' );
-				dispatch( createSuccessNotice( message, { id: SAVE_REUSABLE_BLOCK_NOTICE_ID } ) );
+				const message = isTemporary ? __( 'Block created.' ) : __( 'Block updated.' );
+				dispatch( createSuccessNotice( message, { id: REUSABLE_BLOCK_NOTICE_ID } ) );
 			},
 			( error ) => {
 				dispatch( { type: 'SAVE_REUSABLE_BLOCK_FAILURE', id } );
 				const message = __( 'An unknown error occured.' );
 				dispatch( createErrorNotice( get( error.responseJSON, 'message', message ), {
-					id: SAVE_REUSABLE_BLOCK_NOTICE_ID,
+					id: REUSABLE_BLOCK_NOTICE_ID,
+					spokenMessage: message,
+				} ) );
+			}
+		);
+	},
+	DELETE_REUSABLE_BLOCK( action, store ) {
+		// TODO: these are potentially undefined, this fix is in place
+		// until there is a filter to not use reusable blocks if undefined
+		if ( ! has( wp, 'api.models.Blocks' ) ) {
+			return;
+		}
+
+		const { id } = action;
+		const { getState, dispatch } = store;
+
+		// Don't allow a reusable block with a temporary ID to be deleted
+		const reusableBlock = getReusableBlock( getState(), id );
+		if ( ! reusableBlock || reusableBlock.isTemporary ) {
+			return;
+		}
+
+		// Remove any other blocks that reference this reusable block
+		const allBlocks = getBlocks( getState() );
+		const associatedBlocks = allBlocks.filter( block => isReusableBlock( block ) && block.attributes.ref === id );
+		const associatedBlockUids = associatedBlocks.map( block => block.uid );
+
+		const transactionId = uniqueId();
+
+		dispatch( {
+			type: 'REMOVE_REUSABLE_BLOCK',
+			id,
+			associatedBlockUids,
+			optimist: { type: BEGIN, id: transactionId },
+		} );
+
+		new wp.api.models.Blocks( { id } ).destroy().then(
+			() => {
+				dispatch( {
+					type: 'DELETE_REUSABLE_BLOCK_SUCCESS',
+					id,
+					optimist: { type: COMMIT, id: transactionId },
+				} );
+				const message = __( 'Block deleted.' );
+				dispatch( createSuccessNotice( message, { id: REUSABLE_BLOCK_NOTICE_ID } ) );
+			},
+			( error ) => {
+				dispatch( {
+					type: 'DELETE_REUSABLE_BLOCK_FAILURE',
+					id,
+					optimist: { type: REVERT, id: transactionId },
+				} );
+				const message = __( 'An unknown error occured.' );
+				dispatch( createErrorNotice( get( error.responseJSON, 'message', message ), {
+					id: REUSABLE_BLOCK_NOTICE_ID,
 					spokenMessage: message,
 				} ) );
 			}
@@ -388,16 +458,60 @@ export default {
 
 		const oldBlock = getBlock( getState(), action.uid );
 		const reusableBlock = createReusableBlock( oldBlock.name, oldBlock.attributes );
-		const newBlock = createBlock( 'core/block', { ref: reusableBlock.id } );
+		const newBlock = createBlock( 'core/block', {
+			ref: reusableBlock.id,
+			layout: oldBlock.attributes.layout,
+		} );
 		dispatch( updateReusableBlock( reusableBlock.id, reusableBlock ) );
 		dispatch( saveReusableBlock( reusableBlock.id ) );
 		dispatch( replaceBlocks( [ oldBlock.uid ], [ newBlock ] ) );
 	},
-	APPEND_DEFAULT_BLOCK() {
-		return insertBlock( createBlock( getDefaultBlockName() ) );
+	APPEND_DEFAULT_BLOCK( action ) {
+		const { attributes, rootUID } = action;
+		const block = createBlock( getDefaultBlockName(), attributes );
+
+		return insertBlock( block, undefined, rootUID );
 	},
 	CREATE_NOTICE( { notice: { content, spokenMessage } } ) {
 		const message = spokenMessage || content;
 		speak( message, 'assertive' );
+	},
+	INITIALIZE_META_BOX_STATE( action, store ) {
+		// Allow toggling metaboxes panels
+		if ( some( action.metaBoxes ) ) {
+			window.postboxes.add_postbox_toggles( 'post' );
+		}
+		const dataPerLocation = reduce( action.metaBoxes, ( memo, isActive, location ) => {
+			if ( isActive ) {
+				memo[ location ] = jQuery( getMetaBoxContainer( location ) ).serialize();
+			}
+			return memo;
+		}, {} );
+		store.dispatch( setMetaBoxSavedData( dataPerLocation ) );
+	},
+	REQUEST_META_BOX_UPDATES( action, store ) {
+		const dataPerLocation = reduce( getMetaBoxes( store.getState() ), ( memo, metabox, location ) => {
+			if ( metabox.isActive ) {
+				memo[ location ] = jQuery( getMetaBoxContainer( location ) ).serialize();
+			}
+			return memo;
+		}, {} );
+		store.dispatch( setMetaBoxSavedData( dataPerLocation ) );
+
+		// To save the metaboxes, we serialize each one of the location forms and combine them
+		// We also add the "common" hidden fields from the base .metabox-base-form
+		const formData = values( dataPerLocation ).concat(
+			jQuery( '.metabox-base-form' ).serialize()
+		).join( '&' );
+		const fetchOptions = {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+			body: formData,
+			credentials: 'include',
+		};
+
+		// Save the metaboxes
+		window.fetch( window._wpMetaBoxUrl, fetchOptions )
+			.then( () => store.dispatch( metaBoxUpdatesSuccess() ) );
 	},
 };
