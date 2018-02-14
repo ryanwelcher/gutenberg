@@ -25,6 +25,7 @@ import { __, sprintf } from '@wordpress/i18n';
 /**
  * Internal dependencies
  */
+import { getScrollContainer } from '../../utils/dom';
 import BlockMover from '../block-mover';
 import BlockDropZone from '../block-drop-zone';
 import BlockSettingsMenu from '../block-settings-menu';
@@ -57,8 +58,8 @@ import {
 	isMultiSelecting,
 	getBlockIndex,
 	getEditedPostAttribute,
-	getNextBlock,
-	getPreviousBlock,
+	getNextBlockUid,
+	getPreviousBlockUid,
 	isBlockHovered,
 	isBlockMultiSelected,
 	isBlockSelected,
@@ -70,31 +71,6 @@ import {
 } from '../../store/selectors';
 
 const { BACKSPACE, ESCAPE, DELETE, ENTER, UP, RIGHT, DOWN, LEFT } = keycodes;
-
-/**
- * Given a DOM node, finds the closest scrollable container node.
- *
- * @param {Element} node Node from which to start.
- *
- * @return {?Element} Scrollable container node, if found.
- */
-function getScrollContainer( node ) {
-	if ( ! node ) {
-		return;
-	}
-
-	// Scrollable if scrollable height exceeds displayed...
-	if ( node.scrollHeight > node.clientHeight ) {
-		// ...except when overflow is defined to be hidden or visible
-		const { overflowY } = window.getComputedStyle( node );
-		if ( /(auto|scroll)/.test( overflowY ) ) {
-			return node;
-		}
-	}
-
-	// Continue traversing
-	return getScrollContainer( node.parentNode );
-}
 
 export class BlockListBlock extends Component {
 	constructor() {
@@ -290,20 +266,20 @@ export class BlockListBlock extends Component {
 	}
 
 	mergeBlocks( forward = false ) {
-		const { block, previousBlock, nextBlock, onMerge } = this.props;
+		const { block, previousBlockUid, nextBlockUid, onMerge } = this.props;
 
 		// Do nothing when it's the first block.
 		if (
-			( ! forward && ! previousBlock ) ||
-			( forward && ! nextBlock )
+			( ! forward && ! previousBlockUid ) ||
+			( forward && ! nextBlockUid )
 		) {
 			return;
 		}
 
 		if ( forward ) {
-			onMerge( block, nextBlock );
+			onMerge( block.uid, nextBlockUid );
 		} else {
-			onMerge( previousBlock, block );
+			onMerge( previousBlockUid, block.uid );
 		}
 
 		// Manually trigger typing mode, since merging will remove this block and
@@ -475,8 +451,9 @@ export class BlockListBlock extends Component {
 		// Empty paragraph blocks should always show up as unselected.
 		const isEmptyDefaultBlock = isUnmodifiedDefaultBlock( block );
 		const showSideInserter = ( isSelected || isHovered ) && isEmptyDefaultBlock;
-		const shouldAppearSelected = ! showSideInserter && isSelected && ( ! this.props.isTyping || ! this.state.isSelectionCollapsed );
-		const shouldShowMovers = shouldAppearSelected || isHovered;
+		const isSelectedNotTyping = isSelected && ( ! this.props.isTyping || ! this.state.isSelectionCollapsed );
+		const shouldAppearSelected = ! showSideInserter && isSelectedNotTyping;
+		const shouldShowMovers = shouldAppearSelected || isHovered || ( isEmptyDefaultBlock && isSelectedNotTyping );
 		const shouldShowSettingsMenu = shouldShowMovers;
 		const shouldShowContextualToolbar = shouldAppearSelected && isValid && showContextualToolbar;
 		const shouldShowMobileToolbar = shouldAppearSelected;
@@ -612,8 +589,8 @@ export class BlockListBlock extends Component {
 const mapStateToProps = ( state, { uid, rootUID } ) => {
 	const isSelected = isBlockSelected( state, uid );
 	return {
-		previousBlock: getPreviousBlock( state, uid ),
-		nextBlock: getNextBlock( state, uid ),
+		previousBlockUid: getPreviousBlockUid( state, uid ),
+		nextBlockUid: getNextBlockUid( state, uid ),
 		block: getBlock( state, uid ),
 		isMultiSelected: isBlockMultiSelected( state, uid ),
 		isFirstMultiSelected: isFirstMultiSelectedBlock( state, uid ),
