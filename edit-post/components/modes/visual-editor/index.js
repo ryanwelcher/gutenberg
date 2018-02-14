@@ -9,6 +9,7 @@ import { connect } from 'react-redux';
 import {
 	BlockList,
 	CopyHandler,
+	PostHeader,
 	PostTitle,
 	WritingFlow,
 	EditorGlobalKeyboardShortcuts,
@@ -31,6 +32,7 @@ function VisualEditor( props ) {
 			<CopyHandler />
 			<MultiSelectScrollIntoView />
 			<WritingFlow>
+				<PostHeader />
 				<PostTitle />
 				<BlockList
 					showContextualToolbar={ ! props.hasFixedToolbar }
