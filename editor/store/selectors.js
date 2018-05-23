@@ -22,9 +22,8 @@ import createSelector from 'rememo';
 /**
  * WordPress dependencies
  */
-import { serialize, getBlockType, getBlockTypes } from '@wordpress/blocks';
+import { serialize, getBlockType, getBlockTypes, hasBlockSupport } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
-import { addQueryArgs } from '@wordpress/url';
 import { moment } from '@wordpress/date';
 
 /***
@@ -354,12 +353,7 @@ export function getEditedPostExcerpt( state ) {
  * @return {string} Preview URL.
  */
 export function getEditedPostPreviewLink( state ) {
-	const link = state.currentPost.link;
-	if ( ! link ) {
-		return null;
-	}
-
-	return addQueryArgs( link, { preview: 'true' } );
+	return getCurrentPost( state ).preview_link || null;
 }
 
 /**
@@ -393,7 +387,7 @@ export const getBlockDependantsCacheBust = createSelector(
  * @return {string} Block name.
  */
 export function getBlockName( state, uid ) {
-	const block = state.editor.present.blocksByUid[ uid ];
+	const block = state.editor.present.blocksByUID[ uid ];
 	return block ? block.name : null;
 }
 
@@ -410,7 +404,7 @@ export function getBlockName( state, uid ) {
  */
 export const getBlock = createSelector(
 	( state, uid ) => {
-		const block = state.editor.present.blocksByUid[ uid ];
+		const block = state.editor.present.blocksByUID[ uid ];
 		if ( ! block ) {
 			return null;
 		}
@@ -443,7 +437,7 @@ export const getBlock = createSelector(
 		};
 	},
 	( state, uid ) => [
-		state.editor.present.blocksByUid[ uid ],
+		state.editor.present.blocksByUID[ uid ],
 		getBlockDependantsCacheBust( state, uid ),
 		state.editor.present.edits.meta,
 		state.currentPost.meta,
@@ -475,7 +469,7 @@ export const getBlocks = createSelector(
 	},
 	( state ) => [
 		state.editor.present.blockOrder,
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 	]
 );
 
@@ -491,16 +485,16 @@ export const getBlocks = createSelector(
 export const getGlobalBlockCount = createSelector(
 	( state, blockName ) => {
 		if ( ! blockName ) {
-			return size( state.editor.present.blocksByUid );
+			return size( state.editor.present.blocksByUID );
 		}
 		return reduce(
-			state.editor.present.blocksByUid,
+			state.editor.present.blocksByUID,
 			( count, block ) => block.name === blockName ? count + 1 : count,
 			0
 		);
 	},
 	( state ) => [
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 	]
 );
 
@@ -509,11 +503,11 @@ export const getBlocksByUID = createSelector(
 		return map( castArray( uids ), ( uid ) => getBlock( state, uid ) );
 	},
 	( state ) => [
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 		state.editor.present.blockOrder,
 		state.editor.present.edits.meta,
 		state.currentPost.meta,
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 	]
 );
 
@@ -585,6 +579,19 @@ export function hasSelectedBlock( state ) {
 }
 
 /**
+ * Returns the currently selected block UID, or null if there is no selected
+ * block.
+ *
+ * @param {Object} state Global application state.
+ *
+ * @return {?Object} Selected block UID.
+ */
+export function getSelectedBlockUID( state ) {
+	const { start, end } = state.blockSelection;
+	return start === end && start ? start : null;
+}
+
+/**
  * Returns the currently selected block, or null if there is no selected block.
  *
  * @param {Object} state Global application state.
@@ -592,12 +599,8 @@ export function hasSelectedBlock( state ) {
  * @return {?Object} Selected block.
  */
 export function getSelectedBlock( state ) {
-	const { start, end } = state.blockSelection;
-	if ( start !== end || ! start ) {
-		return null;
-	}
-
-	return getBlock( state, start );
+	const uid = getSelectedBlockUID( state );
+	return uid ? getBlock( state, uid ) : null;
 }
 
 /**
@@ -782,7 +785,7 @@ export const getMultiSelectedBlocks = createSelector(
 		state.editor.present.blockOrder,
 		state.blockSelection.start,
 		state.blockSelection.end,
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 		state.editor.present.edits.meta,
 		state.currentPost.meta,
 	]
@@ -1060,7 +1063,7 @@ export function isValidTemplate( state ) {
  * @return {?Arary}        Block Template
  */
 export function getTemplate( state ) {
-	return state.template.template;
+	return state.settings.template;
 }
 
 /**
@@ -1070,7 +1073,7 @@ export function getTemplate( state ) {
  * @return {?string}        Block Template Lock
  */
 export function getTemplateLock( state ) {
-	return state.template.lock;
+	return state.settings.templateLock;
 }
 
 /**
@@ -1176,7 +1179,7 @@ export const getEditedPostContent = createSelector(
 	},
 	( state ) => [
 		state.editor.present.edits.content,
-		state.editor.present.blocksByUid,
+		state.editor.present.blocksByUID,
 		state.editor.present.blockOrder,
 	],
 );
@@ -1226,7 +1229,7 @@ function buildInserterItemFromBlockType( state, allowedBlockTypes, blockType ) {
 		return null;
 	}
 
-	if ( blockType.isPrivate ) {
+	if ( ! hasBlockSupport( blockType, 'inserter', true ) ) {
 		return null;
 	}
 
@@ -1540,7 +1543,7 @@ export function getPermalink( state ) {
  */
 export function getPermalinkParts( state ) {
 	const permalinkTemplate = getEditedPostAttribute( state, 'permalink_template' );
-	const postName = getEditedPostAttribute( state, 'slug' ) || getEditedPostAttribute( state, 'draft_slug' );
+	const postName = getEditedPostAttribute( state, 'slug' ) || getEditedPostAttribute( state, 'generated_slug' );
 
 	const [ prefix, suffix ] = permalinkTemplate.split( PERMALINK_POSTNAME_REGEX );
 
@@ -1612,4 +1615,15 @@ export function getSupportedBlocks( state, uid, globallyEnabledBlockTypes ) {
 		return supportedNestedBlocks;
 	}
 	return intersection( globallyEnabledBlockTypes, supportedNestedBlocks );
+}
+
+/*
+ * Returns the editor settings.
+ *
+ * @param {Object} state Editor state.
+ *
+ * @return {Object} The editor settings object
+ */
+export function getEditorSettings( state ) {
+	return state.settings;
 }

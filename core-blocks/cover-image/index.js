@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { isEmpty } from 'lodash';
+import classnames from 'classnames';
 
 /**
  * WordPress dependencies
@@ -9,17 +10,16 @@ import { isEmpty } from 'lodash';
 import { IconButton, PanelBody, RangeControl, ToggleControl, Toolbar } from '@wordpress/components';
 import { Fragment } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import classnames from 'classnames';
+import { createBlock } from '@wordpress/blocks';
 import {
-	createBlock,
 	BlockControls,
 	InspectorControls,
 	BlockAlignmentToolbar,
-	ImagePlaceholder,
+	MediaPlaceholder,
 	MediaUpload,
 	AlignmentToolbar,
 	RichText,
-} from '@wordpress/blocks';
+} from '@wordpress/editor';
 
 /**
  * Internal dependencies
@@ -63,7 +63,7 @@ export const name = 'core/cover-image';
 export const settings = {
 	title: __( 'Cover Image' ),
 
-	description: __( 'Cover Image is a bold image block with an optional title.' ),
+	description: __( 'Add a full-width image, and layer text over it -- great for headers.' ),
 
 	icon: 'cover-image',
 
@@ -183,8 +183,16 @@ export const settings = {
 			return (
 				<Fragment>
 					{ controls }
-					<ImagePlaceholder
-						{ ...{ className, icon, label, onSelectImage } }
+					<MediaPlaceholder
+						icon={ icon }
+						className={ className }
+						labels={ {
+							title: label,
+							name: __( 'an image' ),
+						} }
+						onSelect={ onSelectImage }
+						accept="image/*"
+						type="image"
 					/>
 				</Fragment>
 			);

@@ -2,9 +2,7 @@
  * WordPress dependencies
  */
 import { __ } from '@wordpress/i18n';
-import {
-	createBlock,
-} from '@wordpress/blocks';
+import { createBlock } from '@wordpress/blocks';
 
 /**
  * Internal dependencies
@@ -16,7 +14,7 @@ export const name = 'core/code';
 export const settings = {
 	title: __( 'Code' ),
 
-	description: __( 'The code block maintains spaces and tabs, great for showing code snippets.' ),
+	description: __( 'Add text that respects your spacing and tabs -- perfect for displaying code.' ),
 
 	icon: 'editor-code',
 
