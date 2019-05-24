@@ -96,46 +96,52 @@
 		"parent": "developers"
 	},
 	{
-		"title": "PluginBlockSettingsMenuItem",
-		"slug": "plugin-block-settings-menu-item",
-		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-block-settings-menu-item.md",
+		"title": "Block Edit Component",
+		"slug": "block-edit",
+		"markdown_source": "../docs/designers-developers/developers/slotfills/block-edit.md",
+		"parent": "slotfills"
+	},
+	{
+		"title": "Edit Post Component",
+		"slug": "edit-post",
+		"markdown_source": "../docs/designers-developers/developers/slotfills/edit-post.md",
 		"parent": "slotfills"
 	},
 	{
 		"title": "PluginMoreMenuItem",
 		"slug": "plugin-more-menu-item",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-more-menu-item.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "PluginPostPublishPanel",
 		"slug": "plugin-post-publish-panel",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-post-publish-panel.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "PluginPostStatusInfo",
 		"slug": "plugin-post-status-info",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-post-status-info.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "PluginPrePublishPanel",
 		"slug": "plugin-pre-publish-panel",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-pre-publish-panel.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "PluginSidebar",
 		"slug": "plugin-sidebar",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-sidebar.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "PluginSidebarMoreMenuItem",
 		"slug": "plugin-sidebar-more-menu-item",
 		"markdown_source": "../docs/designers-developers/developers/slotfills/plugin-sidebar-more-menu-item.md",
-		"parent": "slotfills"
+		"parent": "edit-post"
 	},
 	{
 		"title": "Internationalization",
