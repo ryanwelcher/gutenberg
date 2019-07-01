@@ -136,6 +136,7 @@ export default compose(
 		return {
 			icon: ownProps.icon || context.icon,
 			sidebarName: `${ context.name }/${ ownProps.name }`,
+			priority: ownProps.priority || context.priority,
 		};
 	} ),
 	withSelect( ( select, { sidebarName } ) => {
