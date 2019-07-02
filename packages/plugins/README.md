@@ -111,6 +111,7 @@ function Component() {
 registerPlugin( 'plugin-name', {
 	icon: 'smiley',
 	render: Component,
+	priority: 5
 } );
 ```
 
@@ -138,6 +139,7 @@ const Component = () => (
 registerPlugin( 'plugin-name', {
 	icon: 'smiley',
 	render: Component,
+	priority: 5
 } );
 ```
 

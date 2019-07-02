@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { map } from 'lodash';
+import { map, sortBy } from 'lodash';
 
 /**
  * WordPress dependencies
@@ -59,12 +59,13 @@ class PluginArea extends Component {
 
 	getCurrentPluginsState() {
 		return {
-			plugins: map( getPlugins(), ( { icon, name, render } ) => {
+			plugins: map( sortBy( getPlugins(), [ 'priority' ] ), ( { icon, name, render, priority } ) => {
 				return {
 					Plugin: render,
 					context: {
 						name,
 						icon,
+						priority,
 					},
 				};
 			} ),
