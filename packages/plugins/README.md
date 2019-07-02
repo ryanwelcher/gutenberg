@@ -111,6 +111,7 @@ function Component() {
 registerPlugin( 'plugin-name', {
 	icon: 'smiley',
 	render: Component,
+	priority: 5
 } );
 ```
 
@@ -138,6 +139,7 @@ const Component = () => (
 registerPlugin( 'plugin-name', {
 	icon: 'smiley',
 	render: Component,
+	priority: 5
 } );
 ```
 
@@ -147,6 +149,7 @@ _Parameters_
 -   _settings_ `Object`: The settings for this plugin.
 -   _settings.icon_ `(string|WPElement|Function)`: An icon to be shown in the UI. It can be a slug of the Dashicon, or an element (or function returning an element) if you choose to render your own SVG.
 -   _settings.render_ `Function`: A component containing the UI elements to be rendered.
+-   _settings.priority_ `number`: Allows for controlling the display order of this plugin. Default is 10.
 
 _Returns_
 

@@ -25,6 +25,7 @@ const plugins = {};
  * @param {string|WPElement|Function} settings.icon   An icon to be shown in the UI. It can be a slug of the Dashicon,
  * or an element (or function returning an element) if you choose to render your own SVG.
  * @param {Function}                  settings.render A component containing the UI elements to be rendered.
+ * @param {number}                       settings.priority Allows for controlling the display order of this plugin. Default is 10.
  *
  * @example <caption>ES5</caption>
  * ```js
@@ -59,6 +60,7 @@ const plugins = {};
  * registerPlugin( 'plugin-name', {
  * 	icon: 'smiley',
  * 	render: Component,
+ * 	priority: 5
  * } );
  * ```
  *
@@ -87,6 +89,7 @@ const plugins = {};
  * registerPlugin( 'plugin-name', {
  * 	icon: 'smiley',
  * 	render: Component,
+ * 	priority: 5
  * } );
  * ```
  *
@@ -102,6 +105,12 @@ export function registerPlugin( name, settings ) {
 	if ( typeof name !== 'string' ) {
 		console.error(
 			'Plugin names must be strings.'
+		);
+		return null;
+	}
+	if ( settings.priority && typeof settings.priority !== 'number' ) {
+		console.error(
+			'The "priority" property must be a number'
 		);
 		return null;
 	}
@@ -129,6 +138,7 @@ export function registerPlugin( name, settings ) {
 	plugins[ name ] = {
 		name,
 		icon: 'admin-plugins',
+		priority: 10,
 		...settings,
 	};
 
