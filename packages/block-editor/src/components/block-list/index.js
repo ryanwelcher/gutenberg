@@ -17,7 +17,7 @@ import { Component } from '@wordpress/element';
 import {
 	withSelect,
 	withDispatch,
-	__experimentalAsyncModeProvider as AsyncModeProvider,
+	AsyncModeProvider,
 } from '@wordpress/data';
 import { compose } from '@wordpress/compose';
 
@@ -195,6 +195,7 @@ class BlockList extends Component {
 			className,
 			blockClientIds,
 			rootClientId,
+			__experimentalMoverDirection: moverDirection = 'vertical',
 			isDraggable,
 			selectedBlockClientId,
 			multiSelectedBlockClientIds,
@@ -210,7 +211,7 @@ class BlockList extends Component {
 					className
 				)
 			}>
-				{ blockClientIds.map( ( clientId ) => {
+				{ blockClientIds.map( ( clientId, index ) => {
 					const isBlockInSelection = hasMultiSelection ?
 						multiSelectedBlockClientIds.includes( clientId ) :
 						selectedBlockClientId === clientId;
@@ -227,11 +228,12 @@ class BlockList extends Component {
 								blockRef={ this.setBlockRef }
 								onSelectionStart={ this.onSelectionStart }
 								isDraggable={ isDraggable }
+								moverDirection={ moverDirection }
 
 								// This prop is explicitely computed and passed down
 								// to avoid being impacted by the async mode
 								// otherwise there might be a small delay to trigger the animation.
-								animateOnChange={ blockClientIds }
+								animateOnChange={ index }
 								enableAnimation={ enableAnimation }
 							/>
 						</BlockAsyncModeProvider>

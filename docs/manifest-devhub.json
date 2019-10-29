@@ -642,6 +642,12 @@
 		"parent": "components"
 	},
 	{
+		"title": "DimensionControl",
+		"slug": "dimension-control",
+		"markdown_source": "../packages/components/src/dimension-control/README.md",
+		"parent": "components"
+	},
+	{
 		"title": "Disabled",
 		"slug": "disabled",
 		"markdown_source": "../packages/components/src/disabled/README.md",
@@ -972,6 +978,12 @@
 		"parent": "components"
 	},
 	{
+		"title": "VisuallyHidden",
+		"slug": "visually-hidden",
+		"markdown_source": "../packages/components/src/visually-hidden/README.md",
+		"parent": "components"
+	},
+	{
 		"title": "Data Module Reference",
 		"slug": "data",
 		"markdown_source": "../docs/designers-developers/developers/data/README.md",
@@ -1080,9 +1092,21 @@
 		"parent": "packages"
 	},
 	{
+		"title": "@wordpress/base-styles",
+		"slug": "packages-base-styles",
+		"markdown_source": "../packages/base-styles/README.md",
+		"parent": "packages"
+	},
+	{
 		"title": "@wordpress/blob",
 		"slug": "packages-blob",
 		"markdown_source": "../packages/blob/README.md",
+		"parent": "packages"
+	},
+	{
+		"title": "@wordpress/block-directory",
+		"slug": "packages-block-directory",
+		"markdown_source": "../packages/block-directory/README.md",
 		"parent": "packages"
 	},
 	{
@@ -1227,6 +1251,12 @@
 		"title": "@wordpress/element",
 		"slug": "packages-element",
 		"markdown_source": "../packages/element/README.md",
+		"parent": "packages"
+	},
+	{
+		"title": "@wordpress/env",
+		"slug": "packages-env",
+		"markdown_source": "../packages/env/README.md",
 		"parent": "packages"
 	},
 	{

@@ -113,6 +113,7 @@ export class PostPublishButton extends Component {
 		return (
 			<div>
 				<Button
+					isLarge
 					ref={ this.buttonNode }
 					{ ...componentProps }
 				>
@@ -155,7 +156,7 @@ export default compose( [
 	withDispatch( ( dispatch ) => {
 		const { editPost, savePost } = dispatch( 'core/editor' );
 		return {
-			onStatusChange: ( status ) => editPost( { status } ),
+			onStatusChange: ( status ) => editPost( { status }, { undoIgnore: true } ),
 			onSave: savePost,
 		};
 	} ),

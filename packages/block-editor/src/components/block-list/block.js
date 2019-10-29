@@ -49,7 +49,6 @@ import BlockInsertionPoint from './insertion-point';
 import IgnoreNestedEvents from '../ignore-nested-events';
 import InserterWithShortcuts from '../inserter-with-shortcuts';
 import Inserter from '../inserter';
-import useHoveredArea from './hover-area';
 import { isInsideRootBlock } from '../../utils/dom';
 import useMovingAnimation from './moving-animation';
 
@@ -68,6 +67,7 @@ function BlockListBlock( {
 	mode,
 	isFocusMode,
 	hasFixedToolbar,
+	moverDirection,
 	isLocked,
 	clientId,
 	rootClientId,
@@ -81,7 +81,6 @@ function BlockListBlock( {
 	isParentOfSelectedBlock,
 	isDraggable,
 	isSelectionEnabled,
-	isRTL,
 	className,
 	name,
 	isValid,
@@ -116,9 +115,6 @@ function BlockListBlock( {
 
 	// Reference to the block edit node
 	const blockNodeRef = useRef();
-
-	// Hovered area of the block
-	const hoverArea = useHoveredArea( wrapper );
 
 	const breadcrumb = useRef();
 
@@ -186,7 +182,7 @@ function BlockListBlock( {
 
 	// Handling the error state
 	const [ hasError, setErrorState ] = useState( false );
-	const onBlockError = () => setErrorState( false );
+	const onBlockError = () => setErrorState( true );
 
 	// Handling of forceContextualToolbarFocus
 	const isForcingContextualToolbar = useRef( false );
@@ -261,7 +257,7 @@ function BlockListBlock( {
 	}, [ isFirstMultiSelected ] );
 
 	// Block Reordering animation
-	const animationStyle = useMovingAnimation( wrapper, isSelected || isPartOfMultiSelection, enableAnimation, animateOnChange );
+	const animationStyle = useMovingAnimation( wrapper, isSelected || isPartOfMultiSelection, isSelected || isFirstMultiSelected, enableAnimation, animateOnChange );
 
 	// Focus the breadcrumb if the wrapper is focused on navigation mode.
 	// Focus the first editable or the wrapper if edit mode.
@@ -404,7 +400,7 @@ function BlockListBlock( {
 	// We render block movers and block settings to keep them tabbale even if hidden
 	const shouldRenderMovers =
 		! isNavigationMode &&
-		( isSelected || hoverArea === ( isRTL ? 'right' : 'left' ) ) &&
+		isSelected &&
 		! showEmptyBlockSideInserter &&
 		! isPartOfMultiSelection &&
 		! isTypingWithinBlock;
@@ -455,6 +451,20 @@ function BlockListBlock( {
 		};
 	}
 	const blockElementId = `block-${ clientId }`;
+	const blockMover = (
+		<BlockMover
+			clientIds={ clientId }
+			blockElementId={ blockElementId }
+			isHidden={ ! isSelected }
+			isDraggable={
+				isDraggable !== false &&
+				( ! isPartOfMultiSelection && isMovable )
+			}
+			onDragStart={ onDragStart }
+			onDragEnd={ onDragEnd }
+			__experimentalOrientation={ moverDirection }
+		/>
+	);
 
 	// We wrap the BlockEdit component in a div that hides it when editing in
 	// HTML mode. This allows us to render all of the ancillary pieces
@@ -516,22 +526,18 @@ function BlockListBlock( {
 				rootClientId={ rootClientId }
 			/>
 			{ isFirstMultiSelected && (
-				<BlockMultiControls rootClientId={ rootClientId } />
+				<BlockMultiControls
+					rootClientId={ rootClientId }
+					moverDirection={ moverDirection }
+				/>
 			) }
-			<div className="editor-block-list__block-edit block-editor-block-list__block-edit">
-				{ shouldRenderMovers && (
-					<BlockMover
-						clientIds={ clientId }
-						blockElementId={ blockElementId }
-						isHidden={ ! ( isHovered || isSelected ) || hoverArea !== ( isRTL ? 'right' : 'left' ) }
-						isDraggable={
-							isDraggable !== false &&
-							( ! isPartOfMultiSelection && isMovable )
-						}
-						onDragStart={ onDragStart }
-						onDragEnd={ onDragEnd }
-					/>
+			<div
+				className={ classnames(
+					'editor-block-list__block-edit block-editor-block-list__block-edit',
+					{ 'has-mover-inside': moverDirection === 'horizontal' },
 				) }
+			>
+				{ shouldRenderMovers && ( moverDirection === 'vertical' ) && blockMover }
 				{ shouldShowBreadcrumb && (
 					<BlockBreadcrumb
 						clientId={ clientId }
@@ -571,6 +577,7 @@ function BlockListBlock( {
 						{ isValid && mode === 'html' && (
 							<BlockHtml clientId={ clientId } />
 						) }
+						{ shouldRenderMovers && ( moverDirection === 'horizontal' ) && blockMover }
 						{ ! isValid && [
 							<BlockInvalidWarning
 								key="invalid-warning"
@@ -581,10 +588,10 @@ function BlockListBlock( {
 							</div>,
 						] }
 					</BlockCrashBoundary>
-					{ shouldShowMobileToolbar && (
-						<BlockMobileToolbar clientId={ clientId } />
-					) }
 					{ !! hasError && <BlockCrashWarning /> }
+					{ shouldShowMobileToolbar && (
+						<BlockMobileToolbar clientId={ clientId } moverDirection={ moverDirection } />
+					) }
 				</IgnoreNestedEvents>
 			</div>
 			{ showInserterShortcuts && (

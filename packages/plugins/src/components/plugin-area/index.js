@@ -48,7 +48,7 @@ import { getPlugins } from '../../api';
  * );
  * ```
  *
- * @return {WPElement} Plugin area.
+ * @return {WPComponent} The component to be rendered.
  */
 class PluginArea extends Component {
 	constructor() {

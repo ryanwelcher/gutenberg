@@ -54,13 +54,16 @@ import * as shortcode from './shortcode';
 import * as spacer from './spacer';
 import * as subhead from './subhead';
 import * as table from './table';
-import * as template from './template';
 import * as textColumns from './text-columns';
 import * as verse from './verse';
 import * as video from './video';
 import * as tagCloud from './tag-cloud';
-
 import * as classic from './classic';
+import * as socialLinks from './social-links';
+import * as socialLink from './social-link';
+
+// Full Site Editing Blocks
+import * as siteTitle from './site-title';
 
 /**
  * Function to register an individual block.
@@ -134,7 +137,6 @@ export const registerCoreBlocks = () => {
 		subhead,
 		table,
 		tagCloud,
-		template,
 		textColumns,
 		verse,
 		video,
@@ -163,12 +165,24 @@ export const registerCoreBlocks = () => {
  * __experimentalRegisterExperimentalCoreBlocks( settings );
  * ```
  */
-export const __experimentalRegisterExperimentalCoreBlocks = process.env.GUTENBERG_PHASE === 2 ? ( settings ) => {
-	const { __experimentalEnableLegacyWidgetBlock, __experimentalEnableMenuBlock } = settings;
+export const __experimentalRegisterExperimentalCoreBlocks =
+	process.env.GUTENBERG_PHASE === 2 ?
+		( settings ) => {
+			const {
+				__experimentalEnableLegacyWidgetBlock,
+				__experimentalEnableMenuBlock,
+				__experimentalEnableFullSiteEditing,
+			} = settings
 
-	[
-		__experimentalEnableLegacyWidgetBlock ? legacyWidget : null,
-		__experimentalEnableMenuBlock ? navigationMenu : null,
-		__experimentalEnableMenuBlock ? navigationMenuItem : null,
-	].forEach( registerBlock );
-} : undefined;
+				;[
+				__experimentalEnableLegacyWidgetBlock ? legacyWidget : null,
+				__experimentalEnableMenuBlock ? navigationMenu : null,
+				__experimentalEnableMenuBlock ? navigationMenuItem : null,
+				socialLinks,
+				...socialLink.sites,
+
+				// Register Full Site Editing Blocks.
+				...( __experimentalEnableFullSiteEditing ? [ siteTitle ] : [] ),
+			].forEach( registerBlock );
+		} :
+		undefined;
