@@ -25,21 +25,24 @@ function render_block_core_more_from_author( $attributes, $content, $block ) {
 		return '';
 	}
 
+	$title      = isset( $attributes['title'] ) ? $attributes['title'] : __( 'More from this author' );
+	$post_count = isset( $attributes['postCount'] ) ? intval( $attributes['postCount'] ) : 3;
+
 	$post_id = intval( $block->context['postId'] );
 	$more_posts = new \WP_Query(
 		array(
-			'post_type'      => get_post_type( $post_id ),
-			'posts_per_page' => 3,
+			'posts_per_page' => $post_count,
 			'no_found_rows'  => true,
 			'fields'         => 'ids',
 			'post__not_in'   => array( $post_id ),
+			'author'         => get_post_field( 'author', $post_id ),
 		)
 	);
 
 	if ( ! $more_posts->have_posts() ) {
 		return '';
 	}
-	$title = isset( $attributes['title'] ) ? $attributes['title'] : __( 'More from this author' );
+
 	ob_start(); ?>
 		<section>
 			<h3><?php echo esc_html( $title ); ?></h3>

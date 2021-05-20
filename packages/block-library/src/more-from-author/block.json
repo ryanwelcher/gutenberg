@@ -10,6 +10,10 @@
 		"title": {
 			"type": "string",
 			"default": "More from this author"
+		},
+		"postCount": {
+			"type": "number",
+			"default": 3
 		}
 	},
 	"usesContext": [ "postType", "postId" ],
