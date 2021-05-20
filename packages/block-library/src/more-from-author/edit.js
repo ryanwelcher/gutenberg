@@ -57,7 +57,6 @@ export default function MoreFromAuthorEdit( {
 					setAttributes( { title: newTitle } )
 				}
 				placeholder={ __( 'Title…' ) }
-				keepPlaceholderOnFocus
 			/>
 			<ul>
 				{ morePosts.map( ( { id, title: { raw: postTitle } } ) => {

@@ -27,8 +27,9 @@ function render_block_core_more_from_author( $attributes, $content, $block ) {
 
 	$title      = isset( $attributes['title'] ) ? $attributes['title'] : __( 'More from this author' );
 	$post_count = isset( $attributes['postCount'] ) ? intval( $attributes['postCount'] ) : 3;
+	$post_id    = intval( $block->context['postId'] );
 
-	$post_id = intval( $block->context['postId'] );
+	// Query for more posts.
 	$more_posts = new \WP_Query(
 		array(
 			'posts_per_page' => $post_count,
