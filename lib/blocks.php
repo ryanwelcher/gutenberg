@@ -66,6 +66,7 @@ function gutenberg_reregister_core_block_types() {
 				'shortcode.php'                 => 'core/shortcode',
 				'social-link.php'               => 'core/social-link',
 				'tag-cloud.php'                 => 'core/tag-cloud',
+				'more-from-author.php'          => 'core/more-from-author',
 				'page-list.php'                 => 'core/page-list',
 				'post-author.php'               => 'core/post-author',
 				'post-comment.php'              => 'core/post-comment',

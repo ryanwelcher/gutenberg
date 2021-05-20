@@ -43,6 +43,7 @@ import * as logInOut from './loginout';
 import * as list from './list';
 import * as missing from './missing';
 import * as more from './more';
+import * as moreFromAuthor from './more-from-author';
 import * as nextpage from './nextpage';
 import * as pageList from './page-list';
 import * as preformatted from './preformatted';
@@ -150,6 +151,7 @@ export const __experimentalGetCoreBlocks = () => [
 	latestPosts,
 	missing,
 	more,
+	moreFromAuthor,
 	nextpage,
 	pageList,
 	preformatted,
