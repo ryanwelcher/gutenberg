@@ -56,10 +56,11 @@ class PluginArea extends Component {
 		super( ...arguments );
 
 		this.setPlugins = this.setPlugins.bind( this );
-		this.memoizedContext = memoize( ( name, icon ) => {
+		this.memoizedContext = memoize( ( name, icon, priority ) => {
 			return {
 				name,
 				icon,
+				priority,
 			};
 		} );
 		this.state = this.getCurrentPluginsState();
@@ -67,15 +68,20 @@ class PluginArea extends Component {
 
 	getCurrentPluginsState() {
 		return {
-			plugins: map(
-				getPlugins( this.props.scope ),
-				( { icon, name, render, priority } ) => {
-					return {
-						Plugin: render,
-						context: this.memoizedContext( name, icon, priority ),
-					};
-				}
-			),
+			plugins: compose(
+				( list ) =>
+					map( list, ( { icon, name, render, priority } ) => {
+						return {
+							Plugin: render,
+							context: this.memoizedContext(
+								name,
+								icon,
+								priority
+							),
+						};
+					} ),
+				( list ) => sortBy( list, [ 'priority' ] )
+			)( getPlugins( this.props.scope ) ),
 		};
 	}
 
