@@ -12,13 +12,17 @@ import { safeDecodeURIComponent } from '@wordpress/url';
  */
 import PostSlugCheck from './check';
 import { cleanForSlug } from '../../utils/url';
+import { store as editorStore } from '../../store';
 
 export class PostSlug extends Component {
 	constructor( { postSlug, postTitle, postID } ) {
 		super( ...arguments );
 
 		this.state = {
-			editedSlug: safeDecodeURIComponent( postSlug ) || cleanForSlug( postTitle ) || postID,
+			editedSlug:
+				safeDecodeURIComponent( postSlug ) ||
+				cleanForSlug( postTitle ) ||
+				postID,
 		};
 
 		this.setSlug = this.setSlug.bind( this );
@@ -50,7 +54,9 @@ export class PostSlug extends Component {
 					type="text"
 					id={ inputId }
 					value={ editedSlug }
-					onChange={ ( event ) => this.setState( { editedSlug: event.target.value } ) }
+					onChange={ ( event ) =>
+						this.setState( { editedSlug: event.target.value } )
+					}
 					onBlur={ this.setSlug }
 					className="editor-post-slug__input"
 				/>
@@ -61,10 +67,9 @@ export class PostSlug extends Component {
 
 export default compose( [
 	withSelect( ( select ) => {
-		const {
-			getCurrentPost,
-			getEditedPostAttribute,
-		} = select( 'core/editor' );
+		const { getCurrentPost, getEditedPostAttribute } = select(
+			editorStore
+		);
 
 		const { id } = getCurrentPost();
 		return {
@@ -74,7 +79,7 @@ export default compose( [
 		};
 	} ),
 	withDispatch( ( dispatch ) => {
-		const { editPost } = dispatch( 'core/editor' );
+		const { editPost } = dispatch( editorStore );
 		return {
 			onUpdateSlug( slug ) {
 				editPost( { slug } );

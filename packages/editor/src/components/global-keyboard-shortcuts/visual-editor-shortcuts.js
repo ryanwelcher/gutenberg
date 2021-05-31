@@ -2,43 +2,35 @@
  * WordPress dependencies
  */
 import { useShortcut } from '@wordpress/keyboard-shortcuts';
-import { useDispatch, useSelect } from '@wordpress/data';
-import deprecated from '@wordpress/deprecated';
+import { useDispatch } from '@wordpress/data';
 import { BlockEditorKeyboardShortcuts } from '@wordpress/block-editor';
 
 /**
  * Internal dependencies
  */
 import SaveShortcut from './save-shortcut';
+import { store as editorStore } from '../../store';
 
 function VisualEditorGlobalKeyboardShortcuts() {
-	const { redo, undo, savePost } = useDispatch( 'core/editor' );
-	const isEditedPostDirty = useSelect( ( select ) => select( 'core/editor' ).isEditedPostDirty, [] );
+	const { redo, undo } = useDispatch( editorStore );
 
-	useShortcut( 'core/editor/undo', ( event ) => {
-		undo();
-		event.preventDefault();
-	}, { bindGlobal: true } );
+	useShortcut(
+		'core/editor/undo',
+		( event ) => {
+			undo();
+			event.preventDefault();
+		},
+		{ bindGlobal: true }
+	);
 
-	useShortcut( 'core/editor/redo', ( event ) => {
-		redo();
-		event.preventDefault();
-	}, { bindGlobal: true } );
-
-	useShortcut( 'core/editor/save', ( event ) => {
-		event.preventDefault();
-
-		// TODO: This should be handled in the `savePost` effect in
-		// considering `isSaveable`. See note on `isEditedPostSaveable`
-		// selector about dirtiness and meta-boxes.
-		//
-		// See: `isEditedPostSaveable`
-		if ( ! isEditedPostDirty() ) {
-			return;
-		}
-
-		savePost();
-	}, { bindGlobal: true } );
+	useShortcut(
+		'core/editor/redo',
+		( event ) => {
+			redo();
+			event.preventDefault();
+		},
+		{ bindGlobal: true }
+	);
 
 	return (
 		<>
@@ -49,12 +41,3 @@ function VisualEditorGlobalKeyboardShortcuts() {
 }
 
 export default VisualEditorGlobalKeyboardShortcuts;
-
-export function EditorGlobalKeyboardShortcuts() {
-	deprecated( 'EditorGlobalKeyboardShortcuts', {
-		alternative: 'VisualEditorGlobalKeyboardShortcuts',
-		plugin: 'Gutenberg',
-	} );
-
-	return <VisualEditorGlobalKeyboardShortcuts />;
-}

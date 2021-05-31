@@ -6,6 +6,12 @@ import { Popover, Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { withSelect, withDispatch } from '@wordpress/data';
 import { useCallback, useRef } from '@wordpress/element';
+import { close } from '@wordpress/icons';
+
+/**
+ * Internal dependencies
+ */
+import { store as nuxStore } from '../../store';
 
 function onClick( event ) {
 	// Tips are often nested within buttons. We stop propagation so that clicking
@@ -52,13 +58,13 @@ export function DotTip( {
 		>
 			<p>{ children }</p>
 			<p>
-				<Button isLink onClick={ onDismiss }>
+				<Button variant="link" onClick={ onDismiss }>
 					{ hasNextTip ? __( 'See next tip' ) : __( 'Got it' ) }
 				</Button>
 			</p>
 			<Button
 				className="nux-dot-tip__disable"
-				icon="no-alt"
+				icon={ close }
 				label={ __( 'Disable tips' ) }
 				onClick={ onDisable }
 			/>
@@ -68,7 +74,7 @@ export function DotTip( {
 
 export default compose(
 	withSelect( ( select, { tipId } ) => {
-		const { isTipVisible, getAssociatedGuide } = select( 'core/nux' );
+		const { isTipVisible, getAssociatedGuide } = select( nuxStore );
 		const associatedGuide = getAssociatedGuide( tipId );
 		return {
 			isVisible: isTipVisible( tipId ),
@@ -76,7 +82,7 @@ export default compose(
 		};
 	} ),
 	withDispatch( ( dispatch, { tipId } ) => {
-		const { dismissTip, disableTips } = dispatch( 'core/nux' );
+		const { dismissTip, disableTips } = dispatch( nuxStore );
 		return {
 			onDismiss() {
 				dismissTip( tipId );
@@ -85,5 +91,5 @@ export default compose(
 				disableTips();
 			},
 		};
-	} ),
+	} )
 )( DotTip );

@@ -1,10 +1,7 @@
 /**
  * External dependencies
  */
-
-/* eslint-disable import/no-extraneous-dependencies */
 import { text, boolean } from '@storybook/addon-knobs';
-/* eslint-enable import/no-extraneous-dependencies */
 
 /**
  * Internal dependencies
@@ -15,7 +12,7 @@ import CardFooter from '../footer';
 import CardHeader from '../header';
 import { getCardStoryProps } from './_utils';
 
-export default { title: 'Components|Card', component: Card };
+export default { title: 'Components/Card', component: Card };
 
 export const _default = () => {
 	const props = getCardStoryProps();

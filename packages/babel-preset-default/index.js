@@ -1,8 +1,14 @@
-module.exports = function( api ) {
+/**
+ * External dependencies
+ */
+const browserslist = require( 'browserslist' );
+
+module.exports = ( api ) => {
 	let wpBuildOpts = {};
-	const isWPBuild = ( name ) => [ 'WP_BUILD_MAIN', 'WP_BUILD_MODULE' ].some(
-		( buildName ) => name === buildName
-	);
+	const isWPBuild = ( name ) =>
+		[ 'WP_BUILD_MAIN', 'WP_BUILD_MODULE' ].some(
+			( buildName ) => name === buildName
+		);
 
 	const isTestEnv = api.env() === 'test';
 
@@ -15,7 +21,9 @@ module.exports = function( api ) {
 	} );
 
 	const getPresetEnv = () => {
-		const opts = {};
+		const opts = {
+			include: [ 'proposal-nullish-coalescing-operator' ],
+		};
 
 		if ( isTestEnv ) {
 			opts.targets = {
@@ -23,8 +31,12 @@ module.exports = function( api ) {
 			};
 		} else {
 			opts.modules = false;
+			const localBrowserslistConfig =
+				browserslist.findConfig( '.' ) || {};
 			opts.targets = {
-				browsers: require( '@wordpress/browserslist-config' ),
+				browsers:
+					localBrowserslistConfig.defaults ||
+					require( '@wordpress/browserslist-config' ),
 			};
 		}
 
@@ -53,9 +65,12 @@ module.exports = function( api ) {
 	};
 
 	return {
-		presets: [ getPresetEnv() ],
+		presets: [
+			getPresetEnv(),
+			require.resolve( '@babel/preset-typescript' ),
+		],
 		plugins: [
-			require.resolve( '@babel/plugin-proposal-object-rest-spread' ),
+			require.resolve( '@wordpress/warning/babel-plugin' ),
 			[
 				require.resolve( '@wordpress/babel-plugin-import-jsx-pragma' ),
 				{
@@ -65,11 +80,13 @@ module.exports = function( api ) {
 					isDefault: false,
 				},
 			],
-			[ require.resolve( '@babel/plugin-transform-react-jsx' ), {
-				pragma: 'createElement',
-				pragmaFrag: 'Fragment',
-			} ],
-			require.resolve( '@babel/plugin-proposal-async-generator-functions' ),
+			[
+				require.resolve( '@babel/plugin-transform-react-jsx' ),
+				{
+					pragma: 'createElement',
+					pragmaFrag: 'Fragment',
+				},
+			],
 			maybeGetPluginTransformRuntime(),
 		].filter( Boolean ),
 	};

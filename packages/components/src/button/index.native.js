@@ -1,14 +1,23 @@
 /**
  * External dependencies
  */
-import { StyleSheet, TouchableOpacity, Text, View, Platform } from 'react-native';
+import {
+	StyleSheet,
+	TouchableOpacity,
+	Text,
+	View,
+	Platform,
+} from 'react-native';
 import { isArray } from 'lodash';
 
 /**
  * WordPress dependencies
  */
 import { Children, cloneElement } from '@wordpress/element';
-import { withPreferredColorScheme } from '@wordpress/compose';
+import {
+	usePreferredColorScheme,
+	usePreferredColorSchemeStyle,
+} from '@wordpress/compose';
 
 /**
  * Internal dependencies
@@ -70,10 +79,10 @@ export function Button( props ) {
 	const {
 		children,
 		onClick,
+		onLongPress,
 		disabled,
 		hint,
 		fixedRatio = true,
-		getStylesFromColorScheme,
 		isPressed,
 		'aria-disabled': ariaDisabled,
 		'data-subscript': subscript,
@@ -85,6 +94,7 @@ export function Button( props ) {
 		shortcut,
 		tooltipPosition,
 	} = props;
+	const preferredColorScheme = usePreferredColorScheme();
 
 	const isDisabled = ariaDisabled || disabled;
 
@@ -103,30 +113,41 @@ export function Button( props ) {
 		states.push( 'disabled' );
 	}
 
-	const subscriptInactive = getStylesFromColorScheme( styles.subscriptInactive, styles.subscriptInactiveDark );
+	const subscriptInactive = usePreferredColorSchemeStyle(
+		styles.subscriptInactive,
+		styles.subscriptInactiveDark
+	);
 
 	const newChildren = Children.map( children, ( child ) => {
-		return child ? cloneElement( child, { colorScheme: props.preferredColorScheme, isPressed } ) : child;
+		return child
+			? cloneElement( child, {
+					colorScheme: preferredColorScheme,
+					isPressed,
+			  } )
+			: child;
 	} );
 
 	// Should show the tooltip if...
-	const shouldShowTooltip = ! isDisabled && (
+	const shouldShowTooltip =
+		! isDisabled &&
 		// an explicit tooltip is passed or...
-		( showTooltip && label ) ||
-		// there's a shortcut or...
-		shortcut ||
-		(
+		( ( showTooltip && label ) ||
+			// there's a shortcut or...
+			shortcut ||
 			// there's a label and...
-			!! label &&
-			// the children are empty and...
-			( ! children || ( isArray( children ) && ! children.length ) ) &&
-			// the tooltip is not explicitly disabled.
-			false !== showTooltip
-		)
-	);
+			( !! label &&
+				// the children are empty and...
+				( ! children ||
+					( isArray( children ) && ! children.length ) ) &&
+				// the tooltip is not explicitly disabled.
+				false !== showTooltip ) );
 
-	const newIcon = cloneElement( ( icon && <Icon icon={ icon } size={ iconSize } /> ),
-		{ colorScheme: props.preferredColorScheme, isPressed } );
+	const newIcon = icon
+		? cloneElement( <Icon icon={ icon } size={ iconSize } />, {
+				colorScheme: preferredColorScheme,
+				isPressed,
+		  } )
+		: null;
 
 	const element = (
 		<TouchableOpacity
@@ -137,6 +158,7 @@ export function Button( props ) {
 			accessibilityRole={ 'button' }
 			accessibilityHint={ hint }
 			onPress={ onClick }
+			onLongPress={ onLongPress }
 			style={ styles.container }
 			disabled={ isDisabled }
 			testID={ testID }
@@ -145,7 +167,17 @@ export function Button( props ) {
 				<View style={ { flexDirection: 'row' } }>
 					{ newIcon }
 					{ newChildren }
-					{ subscript && ( <Text style={ isPressed ? styles.subscriptActive : subscriptInactive }>{ subscript }</Text> ) }
+					{ subscript && (
+						<Text
+							style={
+								isPressed
+									? styles.subscriptActive
+									: subscriptInactive
+							}
+						>
+							{ subscript }
+						</Text>
+					) }
 				</View>
 			</View>
 		</TouchableOpacity>
@@ -156,10 +188,15 @@ export function Button( props ) {
 	}
 
 	return (
-		<Tooltip text={ label } shortcut={ shortcut } position={ tooltipPosition }>
+		<Tooltip
+			text={ label }
+			shortcut={ shortcut }
+			position={ tooltipPosition }
+			visible={ showTooltip === true }
+		>
 			{ element }
 		</Tooltip>
 	);
 }
 
-export default withPreferredColorScheme( Button );
+export default Button;

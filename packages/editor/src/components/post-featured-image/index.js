@@ -6,7 +6,7 @@ import { has, get } from 'lodash';
 /**
  * WordPress dependencies
  */
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { applyFilters } from '@wordpress/hooks';
 import {
 	DropZone,
@@ -18,12 +18,18 @@ import {
 } from '@wordpress/components';
 import { compose } from '@wordpress/compose';
 import { withSelect, withDispatch } from '@wordpress/data';
-import { MediaUpload, MediaUploadCheck } from '@wordpress/block-editor';
+import {
+	MediaUpload,
+	MediaUploadCheck,
+	store as blockEditorStore,
+} from '@wordpress/block-editor';
+import { store as coreStore } from '@wordpress/core-data';
 
 /**
  * Internal dependencies
  */
 import PostFeaturedImageCheck from './check';
+import { store as editorStore } from '../../store';
 
 const ALLOWED_MEDIA_TYPES = [ 'image' ];
 
@@ -43,11 +49,22 @@ function PostFeaturedImage( {
 	noticeUI,
 } ) {
 	const postLabel = get( postType, [ 'labels' ], {} );
-	const instructions = <p>{ __( 'To edit the featured image, you need permission to upload media.' ) }</p>;
+	const instructions = (
+		<p>
+			{ __(
+				'To edit the featured image, you need permission to upload media.'
+			) }
+		</p>
+	);
 
 	let mediaWidth, mediaHeight, mediaSourceUrl;
 	if ( media ) {
-		const mediaSize = applyFilters( 'editor.PostFeaturedImage.imageSize', 'post-thumbnail', media.id, currentPostId );
+		const mediaSize = applyFilters(
+			'editor.PostFeaturedImage.imageSize',
+			'post-thumbnail',
+			media.id,
+			currentPostId
+		);
 		if ( has( media, [ 'media_details', 'sizes', mediaSize ] ) ) {
 			// use mediaSize when available
 			mediaWidth = media.media_details.sizes[ mediaSize ].width;
@@ -55,12 +72,22 @@ function PostFeaturedImage( {
 			mediaSourceUrl = media.media_details.sizes[ mediaSize ].source_url;
 		} else {
 			// get fallbackMediaSize if mediaSize is not available
-			const fallbackMediaSize = applyFilters( 'editor.PostFeaturedImage.imageSize', 'thumbnail', media.id, currentPostId );
-			if ( has( media, [ 'media_details', 'sizes', fallbackMediaSize ] ) ) {
+			const fallbackMediaSize = applyFilters(
+				'editor.PostFeaturedImage.imageSize',
+				'thumbnail',
+				media.id,
+				currentPostId
+			);
+			if (
+				has( media, [ 'media_details', 'sizes', fallbackMediaSize ] )
+			) {
 				// use fallbackMediaSize when mediaSize is not available
-				mediaWidth = media.media_details.sizes[ fallbackMediaSize ].width;
-				mediaHeight = media.media_details.sizes[ fallbackMediaSize ].height;
-				mediaSourceUrl = media.media_details.sizes[ fallbackMediaSize ].source_url;
+				mediaWidth =
+					media.media_details.sizes[ fallbackMediaSize ].width;
+				mediaHeight =
+					media.media_details.sizes[ fallbackMediaSize ].height;
+				mediaSourceUrl =
+					media.media_details.sizes[ fallbackMediaSize ].source_url;
 			} else {
 				// use full image size when mediaFallbackSize and mediaSize are not available
 				mediaWidth = media.media_details.width;
@@ -74,30 +101,76 @@ function PostFeaturedImage( {
 		<PostFeaturedImageCheck>
 			{ noticeUI }
 			<div className="editor-post-featured-image">
+				{ media && (
+					<div
+						id={ `editor-post-featured-image-${ featuredImageId }-describedby` }
+						className="hidden"
+					>
+						{ media.alt_text &&
+							sprintf(
+								// Translators: %s: The selected image alt text.
+								__( 'Current image: %s' ),
+								media.alt_text
+							) }
+						{ ! media.alt_text &&
+							sprintf(
+								// Translators: %s: The selected image filename.
+								__(
+									'The current image has no alternative text. The file name is: %s'
+								),
+								media.media_details.sizes?.full?.file ||
+									media.slug
+							) }
+					</div>
+				) }
 				<MediaUploadCheck fallback={ instructions }>
 					<MediaUpload
-						title={ postLabel.featured_image || DEFAULT_FEATURE_IMAGE_LABEL }
+						title={
+							postLabel.featured_image ||
+							DEFAULT_FEATURE_IMAGE_LABEL
+						}
 						onSelect={ onUpdateImage }
 						unstableFeaturedImageFlow
 						allowedTypes={ ALLOWED_MEDIA_TYPES }
-						modalClass={ ! featuredImageId ? 'editor-post-featured-image__media-modal' : 'editor-post-featured-image__media-modal' }
+						modalClass="editor-post-featured-image__media-modal"
 						render={ ( { open } ) => (
 							<div className="editor-post-featured-image__container">
 								<Button
-									className={ ! featuredImageId ? 'editor-post-featured-image__toggle' : 'editor-post-featured-image__preview' }
+									className={
+										! featuredImageId
+											? 'editor-post-featured-image__toggle'
+											: 'editor-post-featured-image__preview'
+									}
 									onClick={ open }
-									aria-label={ ! featuredImageId ? null : __( 'Edit or update the image' ) }>
-									{ !! featuredImageId && media &&
+									aria-label={
+										! featuredImageId
+											? null
+											: __( 'Edit or update the image' )
+									}
+									aria-describedby={
+										! featuredImageId
+											? null
+											: `editor-post-featured-image-${ featuredImageId }-describedby`
+									}
+								>
+									{ !! featuredImageId && media && (
 										<ResponsiveWrapper
 											naturalWidth={ mediaWidth }
 											naturalHeight={ mediaHeight }
 											isInline
 										>
-											<img src={ mediaSourceUrl } alt="" />
+											<img
+												src={ mediaSourceUrl }
+												alt=""
+											/>
 										</ResponsiveWrapper>
-									}
-									{ !! featuredImageId && ! media && <Spinner /> }
-									{ ! featuredImageId && ( postLabel.set_featured_image || DEFAULT_SET_FEATURE_IMAGE_LABEL ) }
+									) }
+									{ !! featuredImageId && ! media && (
+										<Spinner />
+									) }
+									{ ! featuredImageId &&
+										( postLabel.set_featured_image ||
+											DEFAULT_SET_FEATURE_IMAGE_LABEL ) }
 								</Button>
 								<DropZone onFilesDrop={ onDropImage } />
 							</div>
@@ -105,37 +178,45 @@ function PostFeaturedImage( {
 						value={ featuredImageId }
 					/>
 				</MediaUploadCheck>
-				{ !! featuredImageId && media && ! media.isLoading &&
+				{ !! featuredImageId && media && ! media.isLoading && (
 					<MediaUploadCheck>
 						<MediaUpload
-							title={ postLabel.featured_image || DEFAULT_FEATURE_IMAGE_LABEL }
+							title={
+								postLabel.featured_image ||
+								DEFAULT_FEATURE_IMAGE_LABEL
+							}
 							onSelect={ onUpdateImage }
 							unstableFeaturedImageFlow
 							allowedTypes={ ALLOWED_MEDIA_TYPES }
 							modalClass="editor-post-featured-image__media-modal"
 							render={ ( { open } ) => (
-								<Button onClick={ open } isSecondary>
+								<Button onClick={ open } variant="secondary">
 									{ __( 'Replace Image' ) }
 								</Button>
 							) }
 						/>
 					</MediaUploadCheck>
-				}
-				{ !! featuredImageId &&
+				) }
+				{ !! featuredImageId && (
 					<MediaUploadCheck>
-						<Button onClick={ onRemoveImage } isLink isDestructive>
-							{ postLabel.remove_featured_image || DEFAULT_REMOVE_FEATURE_IMAGE_LABEL }
+						<Button
+							onClick={ onRemoveImage }
+							variant="link"
+							isDestructive
+						>
+							{ postLabel.remove_featured_image ||
+								DEFAULT_REMOVE_FEATURE_IMAGE_LABEL }
 						</Button>
 					</MediaUploadCheck>
-				}
+				) }
 			</div>
 		</PostFeaturedImageCheck>
 	);
 }
 
 const applyWithSelect = withSelect( ( select ) => {
-	const { getMedia, getPostType } = select( 'core' );
-	const { getCurrentPostId, getEditedPostAttribute } = select( 'core/editor' );
+	const { getMedia, getPostType } = select( coreStore );
+	const { getCurrentPostId, getEditedPostAttribute } = select( editorStore );
 	const featuredImageId = getEditedPostAttribute( 'featured_media' );
 
 	return {
@@ -146,36 +227,38 @@ const applyWithSelect = withSelect( ( select ) => {
 	};
 } );
 
-const applyWithDispatch = withDispatch( ( dispatch, { noticeOperations }, { select } ) => {
-	const { editPost } = dispatch( 'core/editor' );
-	return {
-		onUpdateImage( image ) {
-			editPost( { featured_media: image.id } );
-		},
-		onDropImage( filesList ) {
-			select( 'core/block-editor' )
-				.getSettings()
-				.mediaUpload( {
-					allowedTypes: [ 'image' ],
-					filesList,
-					onFileChange( [ image ] ) {
-						editPost( { featured_media: image.id } );
-					},
-					onError( message ) {
-						noticeOperations.removeAllNotices();
-						noticeOperations.createErrorNotice( message );
-					},
-				} );
-		},
-		onRemoveImage() {
-			editPost( { featured_media: 0 } );
-		},
-	};
-} );
+const applyWithDispatch = withDispatch(
+	( dispatch, { noticeOperations }, { select } ) => {
+		const { editPost } = dispatch( editorStore );
+		return {
+			onUpdateImage( image ) {
+				editPost( { featured_media: image.id } );
+			},
+			onDropImage( filesList ) {
+				select( blockEditorStore )
+					.getSettings()
+					.mediaUpload( {
+						allowedTypes: [ 'image' ],
+						filesList,
+						onFileChange( [ image ] ) {
+							editPost( { featured_media: image.id } );
+						},
+						onError( message ) {
+							noticeOperations.removeAllNotices();
+							noticeOperations.createErrorNotice( message );
+						},
+					} );
+			},
+			onRemoveImage() {
+				editPost( { featured_media: 0 } );
+			},
+		};
+	}
+);
 
 export default compose(
 	withNotices,
 	applyWithSelect,
 	applyWithDispatch,
-	withFilters( 'editor.PostFeaturedImage' ),
+	withFilters( 'editor.PostFeaturedImage' )
 )( PostFeaturedImage );

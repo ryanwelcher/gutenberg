@@ -2,7 +2,7 @@
  * External dependencies
  */
 import classnames from 'classnames';
-import { isArray } from 'lodash';
+import { isArray, uniqueId } from 'lodash';
 
 /**
  * WordPress dependencies
@@ -15,54 +15,85 @@ import { forwardRef } from '@wordpress/element';
  */
 import Tooltip from '../tooltip';
 import Icon from '../icon';
+import VisuallyHidden from '../visually-hidden';
 
-const disabledEventsOnDisabledButton = [
-	'onMouseDown',
-	'onClick',
-];
+const disabledEventsOnDisabledButton = [ 'onMouseDown', 'onClick' ];
+
+function useDeprecatedProps( {
+	isDefault,
+	isPrimary,
+	isSecondary,
+	isTertiary,
+	isLink,
+	variant,
+	...otherProps
+} ) {
+	let computedVariant = variant;
+
+	if ( isPrimary ) {
+		computedVariant ??= 'primary';
+	}
+
+	if ( isTertiary ) {
+		computedVariant ??= 'tertiary';
+	}
+
+	if ( isSecondary ) {
+		computedVariant ??= 'secondary';
+	}
+
+	if ( isDefault ) {
+		deprecated( 'Button isDefault prop', {
+			since: '5.4',
+			alternative: 'variant="secondary"',
+		} );
+
+		computedVariant ??= 'secondary';
+	}
+
+	if ( isLink ) {
+		computedVariant ??= 'link';
+	}
+
+	return {
+		...otherProps,
+		variant: computedVariant,
+	};
+}
 
 export function Button( props, ref ) {
 	const {
 		href,
 		target,
-		isPrimary,
-		isLarge,
 		isSmall,
-		isTertiary,
 		isPressed,
 		isBusy,
-		isDefault,
-		isSecondary,
-		isLink,
 		isDestructive,
 		className,
 		disabled,
 		icon,
+		iconPosition = 'left',
 		iconSize,
 		showTooltip,
 		tooltipPosition,
 		shortcut,
 		label,
 		children,
+		text,
+		variant,
 		__experimentalIsFocusable: isFocusable,
+		describedBy,
 		...additionalProps
-	} = props;
-
-	if ( isDefault ) {
-		deprecated( 'Button isDefault prop', {
-			alternative: 'isSecondary',
-		} );
-	}
+	} = useDeprecatedProps( props );
 
 	const classes = classnames( 'components-button', className, {
-		'is-secondary': isDefault || isSecondary,
-		'is-primary': isPrimary,
-		'is-large': isLarge,
+		'is-secondary': variant === 'secondary',
+		'is-primary': variant === 'primary',
 		'is-small': isSmall,
-		'is-tertiary': isTertiary,
+		'is-tertiary': variant === 'tertiary',
 		'is-pressed': isPressed,
 		'is-busy': isBusy,
-		'is-link': isLink,
+		'is-link': variant === 'link',
 		'is-destructive': isDestructive,
 		'has-text': !! icon && !! children,
 		'has-icon': !! icon,
@@ -70,9 +101,14 @@ export function Button( props, ref ) {
 
 	const trulyDisabled = disabled && ! isFocusable;
 	const Tag = href !== undefined && ! trulyDisabled ? 'a' : 'button';
-	const tagProps = Tag === 'a' ?
-		{ href, target } :
-		{ type: 'button', disabled: trulyDisabled, 'aria-pressed': isPressed };
+	const tagProps =
+		Tag === 'a'
+			? { href, target }
+			: {
+					type: 'button',
+					disabled: trulyDisabled,
+					'aria-pressed': isPressed,
+			  };
 
 	if ( disabled && isFocusable ) {
 		// In this case, the button will be disabled, but still focusable and
@@ -88,20 +124,24 @@ export function Button( props, ref ) {
 	}
 
 	// Should show the tooltip if...
-	const shouldShowTooltip = ! trulyDisabled && (
+	const shouldShowTooltip =
+		! trulyDisabled &&
 		// an explicit tooltip is passed or...
-		( showTooltip && label ) ||
-		// there's a shortcut or...
-		shortcut ||
-		(
+		( ( showTooltip && label ) ||
+			// there's a shortcut or...
+			shortcut ||
 			// there's a label and...
-			!! label &&
-			// the children are empty and...
-			( ! children || ( isArray( children ) && ! children.length ) ) &&
-			// the tooltip is not explicitly disabled.
-			false !== showTooltip
-		)
-	);
+			( !! label &&
+				// the children are empty and...
+				( ! children ||
+					( isArray( children ) && ! children.length ) ) &&
+				// the tooltip is not explicitly disabled.
+				false !== showTooltip ) );
+
+	const descriptionId = describedBy ? uniqueId() : null;
+
+	const describedById =
+		additionalProps[ 'aria-describedby' ] || descriptionId;
 
 	const element = (
 		<Tag
@@ -109,21 +149,48 @@ export function Button( props, ref ) {
 			{ ...additionalProps }
 			className={ classes }
 			aria-label={ additionalProps[ 'aria-label' ] || label }
+			aria-describedby={ describedById }
 			ref={ ref }
 		>
-			{ icon && <Icon icon={ icon } size={ iconSize } /> }
+			{ icon && iconPosition === 'left' && (
+				<Icon icon={ icon } size={ iconSize } />
+			) }
+			{ text && <>{ text }</> }
+			{ icon && iconPosition === 'right' && (
+				<Icon icon={ icon } size={ iconSize } />
+			) }
 			{ children }
 		</Tag>
 	);
 
 	if ( ! shouldShowTooltip ) {
-		return element;
+		return (
+			<>
+				{ element }
+				{ describedBy && (
+					<VisuallyHidden>
+						<span id={ descriptionId }>{ describedBy }</span>
+					</VisuallyHidden>
+				) }
+			</>
+		);
 	}
 
 	return (
-		<Tooltip text={ label } shortcut={ shortcut } position={ tooltipPosition }>
-			{ element }
-		</Tooltip>
+		<>
+			<Tooltip
+				text={ describedBy ? describedBy : label }
+				shortcut={ shortcut }
+				position={ tooltipPosition }
+			>
+				{ element }
+			</Tooltip>
+			{ describedBy && (
+				<VisuallyHidden>
+					<span id={ descriptionId }>{ describedBy }</span>
+				</VisuallyHidden>
+			) }
+		</>
 	);
 }
 

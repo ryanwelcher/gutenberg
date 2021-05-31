@@ -6,6 +6,11 @@ import { __ } from '@wordpress/i18n';
 import { withSelect, withDispatch } from '@wordpress/data';
 import { compose, useViewportMatch } from '@wordpress/compose';
 
+/**
+ * Internal dependencies
+ */
+import { store as editorStore } from '../../store';
+
 function PostSwitchToDraftButton( {
 	isSaving,
 	isPublished,
@@ -21,9 +26,13 @@ function PostSwitchToDraftButton( {
 	const onSwitch = () => {
 		let alertMessage;
 		if ( isPublished ) {
-			alertMessage = __( 'Are you sure you want to unpublish this post?' );
+			alertMessage = __(
+				'Are you sure you want to unpublish this post?'
+			);
 		} else if ( isScheduled ) {
-			alertMessage = __( 'Are you sure you want to unschedule this post?' );
+			alertMessage = __(
+				'Are you sure you want to unschedule this post?'
+			);
 		}
 		// eslint-disable-next-line no-alert
 		if ( window.confirm( alertMessage ) ) {
@@ -36,7 +45,7 @@ function PostSwitchToDraftButton( {
 			className="editor-post-switch-to-draft"
 			onClick={ onSwitch }
 			disabled={ isSaving }
-			isTertiary
+			variant="tertiary"
 		>
 			{ isMobileViewport ? __( 'Draft' ) : __( 'Switch to draft' ) }
 		</Button>
@@ -45,7 +54,11 @@ function PostSwitchToDraftButton( {
 
 export default compose( [
 	withSelect( ( select ) => {
-		const { isSavingPost, isCurrentPostPublished, isCurrentPostScheduled } = select( 'core/editor' );
+		const {
+			isSavingPost,
+			isCurrentPostPublished,
+			isCurrentPostScheduled,
+		} = select( editorStore );
 		return {
 			isSaving: isSavingPost(),
 			isPublished: isCurrentPostPublished(),
@@ -53,7 +66,7 @@ export default compose( [
 		};
 	} ),
 	withDispatch( ( dispatch ) => {
-		const { editPost, savePost } = dispatch( 'core/editor' );
+		const { editPost, savePost } = dispatch( editorStore );
 		return {
 			onClick: () => {
 				editPost( { status: 'draft' } );
@@ -62,4 +75,3 @@ export default compose( [
 		};
 	} ),
 ] )( PostSwitchToDraftButton );
-

@@ -6,17 +6,49 @@ import { get } from 'lodash';
 /**
  * WordPress dependencies
  */
-import { PanelBody, Button, ClipboardButton, TextControl } from '@wordpress/components';
+import { PanelBody, Button, TextControl } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
 import { Component, createRef } from '@wordpress/element';
 import { withSelect } from '@wordpress/data';
 import { safeDecodeURIComponent } from '@wordpress/url';
 import { decodeEntities } from '@wordpress/html-entities';
+import { useCopyToClipboard } from '@wordpress/compose';
+import { store as coreStore } from '@wordpress/core-data';
 
 /**
  * Internal dependencies
  */
 import PostScheduleLabel from '../post-schedule/label';
+import { store as editorStore } from '../../store';
+
+const POSTNAME = '%postname%';
+
+/**
+ * Returns URL for a future post.
+ *
+ * @param {Object} post         Post object.
+ *
+ * @return {string} PostPublish URL.
+ */
+
+const getFuturePostUrl = ( post ) => {
+	const { slug } = post;
+
+	if ( post.permalink_template.includes( POSTNAME ) ) {
+		return post.permalink_template.replace( POSTNAME, slug );
+	}
+
+	return post.permalink_template;
+};
+
+function CopyButton( { text, onCopy, children } ) {
+	const ref = useCopyToClipboard( text, onCopy );
+	return (
+		<Button variant="secondary" ref={ ref }>
+			{ children }
+		</Button>
+	);
+}
 
 class PostPublishPanelPostpublish extends Component {
 	constructor() {
@@ -60,15 +92,25 @@ class PostPublishPanelPostpublish extends Component {
 		const { children, isScheduled, post, postType } = this.props;
 		const postLabel = get( postType, [ 'labels', 'singular_name' ] );
 		const viewPostLabel = get( postType, [ 'labels', 'view_item' ] );
+		const link =
+			post.status === 'future' ? getFuturePostUrl( post ) : post.link;
 
-		const postPublishNonLinkHeader = isScheduled ?
-			<>{ __( 'is now scheduled. It will go live on' ) } <PostScheduleLabel />.</> :
-			__( 'is now live.' );
+		const postPublishNonLinkHeader = isScheduled ? (
+			<>
+				{ __( 'is now scheduled. It will go live on' ) }{ ' ' }
+				<PostScheduleLabel />.
+			</>
+		) : (
+			__( 'is now live.' )
+		);
 
 		return (
 			<div className="post-publish-panel__postpublish">
 				<PanelBody className="post-publish-panel__postpublish-header">
-					<a ref={ this.postLink } href={ post.link }>{ decodeEntities( post.title ) || __( '(no title)' ) }</a> { postPublishNonLinkHeader }
+					<a ref={ this.postLink } href={ link }>
+						{ decodeEntities( post.title ) || __( '(no title)' ) }
+					</a>{ ' ' }
+					{ postPublishNonLinkHeader }
 				</PanelBody>
 				<PanelBody>
 					<p className="post-publish-panel__postpublish-subheader">
@@ -79,21 +121,23 @@ class PostPublishPanelPostpublish extends Component {
 						readOnly
 						label={ sprintf(
 							/* translators: %s: post type singular name */
-							__( '%s address' ), postLabel
+							__( '%s address' ),
+							postLabel
 						) }
-						value={ safeDecodeURIComponent( post.link ) }
+						value={ safeDecodeURIComponent( link ) }
 						onFocus={ this.onSelectInput }
 					/>
 					<div className="post-publish-panel__postpublish-buttons">
 						{ ! isScheduled && (
-							<Button isSecondary href={ post.link }>
+							<Button variant="secondary" href={ link }>
 								{ viewPostLabel }
 							</Button>
 						) }
-
-						<ClipboardButton isSecondary text={ post.link } onCopy={ this.onCopy }>
-							{ this.state.showCopyConfirmation ? __( 'Copied!' ) : __( 'Copy Link' ) }
-						</ClipboardButton>
+						<CopyButton text={ link } onCopy={ this.onCopy }>
+							{ this.state.showCopyConfirmation
+								? __( 'Copied!' )
+								: __( 'Copy Link' ) }
+						</CopyButton>
 					</div>
 				</PanelBody>
 				{ children }
@@ -103,8 +147,12 @@ class PostPublishPanelPostpublish extends Component {
 }
 
 export default withSelect( ( select ) => {
-	const { getEditedPostAttribute, getCurrentPost, isCurrentPostScheduled } = select( 'core/editor' );
-	const { getPostType } = select( 'core' );
+	const {
+		getEditedPostAttribute,
+		getCurrentPost,
+		isCurrentPostScheduled,
+	} = select( editorStore );
+	const { getPostType } = select( coreStore );
 
 	return {
 		post: getCurrentPost(),

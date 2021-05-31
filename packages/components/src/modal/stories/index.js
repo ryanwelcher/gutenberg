@@ -15,7 +15,7 @@ import Modal from '../';
  */
 import { useState } from '@wordpress/element';
 
-export default { title: 'Components|Modal', component: Modal };
+export default { title: 'Components/Modal', component: Modal };
 
 const ModalExample = ( props ) => {
 	const [ isOpen, setOpen ] = useState( false );
@@ -24,12 +24,12 @@ const ModalExample = ( props ) => {
 
 	return (
 		<>
-			<Button isSecondary onClick={ openModal }>
+			<Button variant="secondary" onClick={ openModal }>
 				Open Modal
 			</Button>
 			{ isOpen && (
 				<Modal { ...props } onRequestClose={ closeModal }>
-					<Button isSecondary onClick={ closeModal }>
+					<Button variant="secondary" onClick={ closeModal }>
 						Close Modal
 					</Button>
 				</Modal>
